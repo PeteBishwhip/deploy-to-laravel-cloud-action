@@ -6,6 +6,12 @@ EXTENSIONS="${EXTENSIONS:-curl,openssl,mbstring,json,zip,phar}"
 WORK_DIR="${WORK_DIR:-tools/static-php-cli}"
 OUTPUT_PATH="${OUTPUT_PATH:-bin/php}"
 
+cleanup() {
+  rm -rf "${WORK_DIR}"
+}
+
+trap cleanup EXIT
+
 if [ ! -d "${WORK_DIR}" ]; then
   git clone --depth=1 https://github.com/crazywhalecc/static-php-cli.git "${WORK_DIR}"
 fi
@@ -31,8 +37,6 @@ EOF
 php bin/spc craft
 
 popd >/dev/null
-
-rm -rf "${WORK_DIR}"
 
 BUILD_OUTPUT="${WORK_DIR}/buildroot/bin/php"
 if [ ! -x "${BUILD_OUTPUT}" ]; then
