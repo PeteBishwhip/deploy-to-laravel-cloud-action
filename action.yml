@@ -38,7 +38,7 @@ outputs:
   deployment_url:
     description: API URL for the deployment resource if provided by the API.
   success:
-    description: "true" when the deployment succeeds, otherwise "false".
+    description: '"true" when the deployment succeeds, otherwise "false".'
 
 runs:
   using: composite
