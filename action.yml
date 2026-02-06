@@ -45,19 +45,11 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Validate bundled runtime
-      shell: bash
-      run: |
-        if [ ! -x "${GITHUB_ACTION_PATH}/bin/php-static" ]; then
-          echo "Missing bundled PHP runtime at ${GITHUB_ACTION_PATH}/bin/php-static"
-          echo "Run the update-php-binary workflow to generate it."
-          exit 1
-        fi
-        if [ ! -f "${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar" ]; then
-          echo "Missing PHAR at ${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar"
-          echo "Run the build-phar workflow to generate it."
-          exit 1
-        fi
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.5'
+        extensions: curl, json
     - name: Trigger Laravel Cloud deployment
       shell: bash
       env:
@@ -69,4 +61,6 @@ runs:
         LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
-        "${GITHUB_ACTION_PATH}/bin/php" "${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar" cloud:deploy
+        cd "${GITHUB_ACTION_PATH}"
+        composer install --no-dev --prefer-dist --no-interaction --no-progress
+        php artisan cloud:deploy

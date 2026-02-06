@@ -2,20 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Support;
 
-use Illuminate\Console\Command;
-use App\Support\ActionOutput;
-use App\Support\CloudApi;
-use App\Support\UrlHelper;
-
-class DeployCommand extends Command
+class DeployRunner
 {
-    protected $signature = 'cloud:deploy';
-
-    protected $description = 'Deploy a Laravel Cloud environment and report progress.';
-
-    public function handle(CloudApi $api, ActionOutput $output): int
+    public function handle(): int
     {
         $token = getenv('LARAVEL_CLOUD_API_TOKEN') ?: null;
         $environmentId = getenv('LARAVEL_CLOUD_ENVIRONMENT') ?: null;
@@ -24,6 +15,9 @@ class DeployCommand extends Command
         $waitValue = strtolower(getenv('LARAVEL_CLOUD_WAIT') ?: 'true');
         $pollInterval = (int) (getenv('LARAVEL_CLOUD_POLL_INTERVAL') ?: '10');
         $timeoutSeconds = (int) (getenv('LARAVEL_CLOUD_TIMEOUT') ?: '1800');
+
+        $output = new ActionOutput();
+        $api = new CloudApi();
 
         if ($token === null || $token === '') {
             $output->fail('Missing required env var: LARAVEL_CLOUD_API_TOKEN', 'config_error', 2);
@@ -58,7 +52,7 @@ class DeployCommand extends Command
         }
 
         $deploymentId = (string) $deployment['id'];
-        $deploymentStatus = $deployment['attributes']['status'] ?? 'unknown';
+        $deploymentStatus = (string) ($deployment['attributes']['status'] ?? 'unknown');
         $deploymentLink = UrlHelper::normalizeLink($deployment['links']['self'] ?? null);
 
         $output->set('deployment_id', $deploymentId);
@@ -70,10 +64,10 @@ class DeployCommand extends Command
         }
 
         if (!$shouldWait) {
-            $output->set('deployment_status', (string) $deploymentStatus);
+            $output->set('deployment_status', $deploymentStatus);
             $output->set('success', 'false');
             $output->summary("Deployment triggered: `{$deploymentId}`");
-            return Command::SUCCESS;
+            return 0;
         }
 
         $terminalSuccess = ['deployment.succeeded'];
@@ -122,7 +116,7 @@ class DeployCommand extends Command
                 if ($environmentUrl) {
                     fwrite(STDOUT, "Environment: {$environmentUrl}\n");
                 }
-                return Command::SUCCESS;
+                return 0;
             }
 
             if (in_array($deploymentStatus, $terminalFailure, true)) {
@@ -143,7 +137,7 @@ class DeployCommand extends Command
                 if ($environmentUrl) {
                     fwrite(STDERR, "Environment: {$environmentUrl}\n");
                 }
-                return Command::FAILURE;
+                return 1;
             }
 
             sleep($pollInterval);

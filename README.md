@@ -2,7 +2,7 @@
 
 Triggers a Laravel Cloud deployment for a specific environment. Optionally waits for completion and reports success.
 
-This action runs a bundled PHAR (`dist/laravel-cloud.phar`) using a bundled static PHP binary (`bin/php-static`) so no runtime setup is required.
+This action runs `php artisan cloud:deploy` from the bundled Laravel 12 app.
 
 ## Inputs
 - `api_token` (required): Laravel Cloud API token.
@@ -64,9 +64,3 @@ jobs:
           environment_name: production
           wait: false
 ```
-
-## Maintenance
-
-Use the manual workflows to keep the bundled runtime up to date:
-- `Update PHP Binary`: rebuilds `bin/php-static` using static-php-cli.
-- `Build PHAR`: rebuilds `dist/laravel-cloud.phar` using Box.
