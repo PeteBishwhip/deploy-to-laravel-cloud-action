@@ -15,8 +15,9 @@ jobs:
           extensions: curl, json
       - name: Run tests
         run: |
-          php -l app/Support/CloudApi.php
-          php -l app/Support/ActionOutput.php
-          php -l app/Support/UrlHelper.php
-          php -l app/Support/DeployRunner.php
-          php -l app/Console/Commands/CloudDeployCommand.php
+          php -l bin/laravel-cloud-deploy
+          php -l src/Application.php
+          php -l src/Command/DeployCommand.php
+          php -l src/Support/CloudApi.php
+          php -l src/Support/Output.php
+          php -l src/Support/UrlHelper.php

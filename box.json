@@ -1,15 +1,5 @@
 {
-  "main": "artisan",
-  "output": "dist/laravel-cloud.phar",
-  "chmod": "0755",
-  "compression": "GZ",
-  "directories": [
-    "app",
-    "bootstrap",
-    "config",
-    "vendor"
-  ],
-  "files": [
-    "artisan"
-  ]
+  "main": "bin/laravel-cloud-deploy",
+  "output": "dist/laravel-cloud-deploy.phar",
+  "banner": false
 }

@@ -2,7 +2,7 @@
 
 Triggers a Laravel Cloud deployment for a specific environment. Optionally waits for completion and reports success.
 
-This action runs `php artisan cloud:deploy` from the bundled Laravel 12 app.
+This action runs a bundled PHAR built using the same structure as NativeCLI.
 
 ## Inputs
 - `api_token` (required): Laravel Cloud API token.
@@ -63,4 +63,10 @@ jobs:
           application_name: My App
           environment_name: production
           wait: false
+```
+
+## Build PHAR
+
+```bash
+./scripts/build-phar.sh
 ```

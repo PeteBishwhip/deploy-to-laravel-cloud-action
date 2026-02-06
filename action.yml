@@ -17,10 +17,10 @@ inputs:
   environment_id:
     description: Alias for environment id (optional if using application_name + environment_name).
     required: false
-  wait:
-    description: Whether to wait for the deployment to finish.
+  no_wait:
+    description: Do not wait for deployment to finish.
     required: false
-    default: "true"
+    default: "false"
   poll_interval_seconds:
     description: Seconds between status checks when waiting.
     required: false
@@ -45,11 +45,13 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Set up PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.5'
-        extensions: curl, json
+    - name: Validate PHAR
+      shell: bash
+      run: |
+        if [ ! -f "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar" ]; then
+          echo "Missing PHAR at ${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar"
+          exit 1
+        fi
     - name: Trigger Laravel Cloud deployment
       shell: bash
       env:
@@ -57,10 +59,11 @@ runs:
         LARAVEL_CLOUD_ENVIRONMENT: ${{ inputs.environment_id != '' && inputs.environment_id || inputs.environment }}
         LARAVEL_CLOUD_APPLICATION_NAME: ${{ inputs.application_name }}
         LARAVEL_CLOUD_ENVIRONMENT_NAME: ${{ inputs.environment_name }}
-        LARAVEL_CLOUD_WAIT: ${{ inputs.wait }}
         LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
-        cd "${GITHUB_ACTION_PATH}"
-        composer install --no-dev --prefer-dist --no-interaction --no-progress
-        php artisan cloud:deploy
+        if [ "${{ inputs.no_wait }}" = "true" ]; then
+          php "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar" --no-wait
+        else
+          php "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar"
+        fi
