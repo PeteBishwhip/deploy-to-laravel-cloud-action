@@ -2,6 +2,7 @@
 set -euo pipefail
 
 BOX_PATH="${BOX_PATH:-tools/box}"
+BOX_VERSION="${BOX_VERSION:-4.6.10}"
 
 if [ ! -f "vendor/autoload.php" ]; then
   composer install --no-interaction --no-progress --prefer-dist
@@ -9,9 +10,9 @@ fi
 
 rm -f bootstrap/cache/*.php
 
+mkdir -p "$(dirname "${BOX_PATH}")"
 if [ ! -f "${BOX_PATH}" ]; then
-  mkdir -p "$(dirname "${BOX_PATH}")"
-  curl -sSLo "${BOX_PATH}" https://github.com/humbug/box/releases/latest/download/box.phar
+  curl -sSLo "${BOX_PATH}" "https://github.com/humbug/box/releases/download/${BOX_VERSION}/box.phar"
   chmod +x "${BOX_PATH}"
 fi
 

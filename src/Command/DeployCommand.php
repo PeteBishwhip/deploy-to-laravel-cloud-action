@@ -19,6 +19,16 @@ use LaravelCloudDeploy\Support\UrlHelper;
 )]
 class DeployCommand extends Command
 {
+    private CloudApi $api;
+    private Output $out;
+
+    public function __construct(?CloudApi $api = null, ?Output $out = null)
+    {
+        parent::__construct();
+        $this->api = $api ?? new CloudApi();
+        $this->out = $out ?? new Output();
+    }
+
     protected function configure(): void
     {
         $this
@@ -41,8 +51,8 @@ class DeployCommand extends Command
         $pollInterval = (int) ($this->optionOrEnv($input, 'poll-interval', 'LARAVEL_CLOUD_POLL_INTERVAL') ?? '10');
         $timeoutSeconds = (int) ($this->optionOrEnv($input, 'timeout', 'LARAVEL_CLOUD_TIMEOUT') ?? '1800');
 
-        $out = new Output();
-        $api = new CloudApi();
+        $out = $this->out;
+        $api = $this->api;
 
         if ($token === null || $token === '') {
             $out->fail('Missing required env var: LARAVEL_CLOUD_API_TOKEN', 'config_error', 2);
@@ -188,7 +198,7 @@ class DeployCommand extends Command
             $out->fail("No applications found for name: {$applicationName}", 'not_found', 1);
         }
 
-        $application = $this->selectByName($applications, $applicationName, 'application');
+        $application = $this->selectByName($out, $applications, $applicationName, 'application');
         if (!isset($application['id'])) {
             $out->fail('Application response missing id', 'invalid_response', 1);
         }
@@ -211,7 +221,7 @@ class DeployCommand extends Command
             $out->fail("No environments found for name: {$environmentName}", 'not_found', 1);
         }
 
-        $environment = $this->selectByName($environments, $environmentName, 'environment');
+        $environment = $this->selectByName($out, $environments, $environmentName, 'environment');
         if (!isset($environment['id'])) {
             $out->fail('Environment response missing id', 'invalid_response', 1);
         }
@@ -219,7 +229,7 @@ class DeployCommand extends Command
         return (string) $environment['id'];
     }
 
-    private function selectByName(array $items, string $target, string $label): array
+    private function selectByName(Output $out, array $items, string $target, string $label): array
     {
         $exact = array_values(array_filter($items, function ($item) use ($target) {
             $name = $item['attributes']['name'] ?? null;
@@ -238,7 +248,7 @@ class DeployCommand extends Command
                 $id = $match['id'] ?? 'unknown';
                 fwrite(STDERR, "- name: {$name}, slug: {$slug}, id: {$id}\n");
             }
-            exit(1);
+            $out->fail("Multiple {$label} matches found for: {$target}", 'not_found', 1);
         }
         if (count($items) === 1) {
             return $items[0];
@@ -273,7 +283,7 @@ class DeployCommand extends Command
                 fwrite(STDERR, "- name: {$name}, slug: {$slug}, id: {$id}\n");
             }
         }
-        exit(1);
+        $out->fail("No unique {$label} match found for: {$target}", 'not_found', 1);
     }
 
     private function resolveEnvironmentUrl(CloudApi $api, string $token, string $environmentId): ?string
