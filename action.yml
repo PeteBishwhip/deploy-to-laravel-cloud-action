@@ -52,6 +52,10 @@ runs:
           echo "Missing PHAR at ${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar"
           exit 1
         fi
+        if [ ! -x "${GITHUB_ACTION_PATH}/bin/php" ]; then
+          echo "Missing static PHP binary at ${GITHUB_ACTION_PATH}/bin/php"
+          exit 1
+        fi
     - name: Trigger Laravel Cloud deployment
       shell: bash
       env:
@@ -63,7 +67,7 @@ runs:
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
         if [ "${{ inputs.no_wait }}" = "true" ]; then
-          php "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar" --no-wait
+          "${GITHUB_ACTION_PATH}/bin/php" "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar" --no-wait
         else
-          php "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar"
+          "${GITHUB_ACTION_PATH}/bin/php" "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar"
         fi

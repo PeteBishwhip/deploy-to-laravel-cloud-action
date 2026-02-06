@@ -4,7 +4,7 @@ set -euo pipefail
 PHP_VERSION="${PHP_VERSION:-8.5}"
 EXTENSIONS="${EXTENSIONS:-curl,openssl,mbstring,json,zip,phar}"
 WORK_DIR="${WORK_DIR:-tools/static-php-cli}"
-OUTPUT_PATH="${OUTPUT_PATH:-bin/php-static}"
+OUTPUT_PATH="${OUTPUT_PATH:-bin/php}"
 
 if [ ! -d "${WORK_DIR}" ]; then
   git clone --depth=1 https://github.com/crazywhalecc/static-php-cli.git "${WORK_DIR}"
