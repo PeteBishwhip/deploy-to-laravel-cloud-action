@@ -1,5 +1,5 @@
 {
   "main": "bin/laravel-cloud-deploy",
-  "output": "dist/laravel-cloud-deploy.phar",
+  "output": "dist/laravel-cloud-deploy",
   "banner": false
 }

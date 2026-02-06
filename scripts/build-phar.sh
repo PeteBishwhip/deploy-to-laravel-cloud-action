@@ -18,9 +18,9 @@ fi
 
 php "${BOX_PATH}" compile -c box.json --composer-bin "$(pwd)/scripts/composer-no-scripts.sh"
 
-if [ ! -f "dist/laravel-cloud-deploy.phar" ]; then
+if [ ! -f "dist/laravel-cloud-deploy" ]; then
   echo "PHAR build failed." >&2
   exit 1
 fi
 
-echo "Built dist/laravel-cloud-deploy.phar"
+echo "Built dist/laravel-cloud-deploy"

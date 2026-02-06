@@ -73,4 +73,4 @@ jobs:
 
 ## Releases
 
-The PHAR is built and uploaded automatically when a release is published. Consumers should use `@v1` to stay on the latest v1 release. When v2 is released, users must opt-in by updating their action version.
+The PHAR is built and uploaded automatically when a release is published as `laravel-cloud-deploy`. Consumers should use `@v1` to stay on the latest v1 release. When v2 is released, users must opt-in by updating their action version.

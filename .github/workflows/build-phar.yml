@@ -21,4 +21,4 @@ jobs:
       - name: Upload PHAR to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/laravel-cloud-deploy.phar
+          files: dist/laravel-cloud-deploy

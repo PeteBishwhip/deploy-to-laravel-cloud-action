@@ -74,7 +74,7 @@ runs:
             $tag = $release["tag_name"] ?? "";
             if (strpos($tag, "v1") !== 0) { continue; }
             foreach (($release["assets"] ?? []) as $asset) {
-              if (($asset["name"] ?? "") === "laravel-cloud-deploy.phar") {
+              if (($asset["name"] ?? "") === "laravel-cloud-deploy") {
                 echo $asset["url"];
                 exit(0);
               }
@@ -84,11 +84,11 @@ runs:
         ' <<< "${release_json}")"
 
         if [ -z "${asset_url}" ]; then
-          echo "Unable to locate a v1 release asset named laravel-cloud-deploy.phar" >&2
+          echo "Unable to locate a v1 release asset named laravel-cloud-deploy" >&2
           exit 1
         fi
 
-        phar_path="${RUNNER_TEMP:-/tmp}/laravel-cloud-deploy.phar"
+        phar_path="${RUNNER_TEMP:-/tmp}/laravel-cloud-deploy"
         curl -sSL \
           -H "Authorization: Bearer ${GITHUB_TOKEN}" \
           -H "Accept: application/octet-stream" \
