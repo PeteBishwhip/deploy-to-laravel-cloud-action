@@ -19,18 +19,26 @@ fi
 
 composer install --no-interaction --no-progress
 
-php bin/spc download --with-php="${PHP_VERSION}" --for-extensions="${EXTENSIONS}"
+cat > craft.yml <<EOF
+php-version: ${PHP_VERSION}
+extensions: "${EXTENSIONS}"
+sapi:
+  - cli
+download-options:
+  prefer-pre-built: true
+EOF
 
-IFS=',' read -r -a EXT_ARRAY <<< "${EXTENSIONS}"
-php bin/spc build --build-cli --output="${OUTPUT_PATH}" "${EXT_ARRAY[@]}"
+php bin/spc craft
 
 popd >/dev/null
 
-if [ ! -x "${OUTPUT_PATH}" ]; then
-  echo "Failed to build PHP binary at ${OUTPUT_PATH}" >&2
+BUILD_OUTPUT="${WORK_DIR}/buildroot/bin/php"
+if [ ! -x "${BUILD_OUTPUT}" ]; then
+  echo "Failed to build PHP binary at ${BUILD_OUTPUT}" >&2
   exit 1
 fi
 
+cp "${BUILD_OUTPUT}" "${OUTPUT_PATH}"
 chmod +x "${OUTPUT_PATH}"
 
 echo "Built PHP binary: ${OUTPUT_PATH}"
