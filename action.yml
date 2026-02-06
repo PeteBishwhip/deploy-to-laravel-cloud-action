@@ -45,17 +45,62 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Validate PHAR
+    - name: Validate bundled PHP
       shell: bash
       run: |
-        if [ ! -f "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar" ]; then
-          echo "Missing PHAR at ${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar"
-          exit 1
-        fi
         if [ ! -x "${GITHUB_ACTION_PATH}/bin/php" ]; then
           echo "Missing static PHP binary at ${GITHUB_ACTION_PATH}/bin/php"
           exit 1
         fi
+    - name: Download PHAR release
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        ACTION_REPO: ${{ github.action_repository }}
+      run: |
+        if [ -z "${ACTION_REPO}" ]; then
+          ACTION_REPO="${GITHUB_REPOSITORY}"
+        fi
+
+        release_json="$(curl -sSL \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/${ACTION_REPO}/releases?per_page=50")"
+
+        asset_url="$("${GITHUB_ACTION_PATH}/bin/php" -r '
+          $json = json_decode(stream_get_contents(STDIN), true);
+          if (!is_array($json)) { exit(1); }
+          foreach ($json as $release) {
+            $tag = $release["tag_name"] ?? "";
+            if (strpos($tag, "v1") !== 0) { continue; }
+            foreach (($release["assets"] ?? []) as $asset) {
+              if (($asset["name"] ?? "") === "laravel-cloud-deploy.phar") {
+                echo $asset["url"];
+                exit(0);
+              }
+            }
+          }
+          exit(1);
+        ' <<< "${release_json}")"
+
+        if [ -z "${asset_url}" ]; then
+          echo "Unable to locate a v1 release asset named laravel-cloud-deploy.phar" >&2
+          exit 1
+        fi
+
+        phar_path="${RUNNER_TEMP:-/tmp}/laravel-cloud-deploy.phar"
+        curl -sSL \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          -H "Accept: application/octet-stream" \
+          "${asset_url}" \
+          -o "${phar_path}"
+
+        if [ ! -f "${phar_path}" ]; then
+          echo "Failed to download PHAR to ${phar_path}" >&2
+          exit 1
+        fi
+
+        echo "PHAR_PATH=${phar_path}" >> "${GITHUB_ENV}"
     - name: Trigger Laravel Cloud deployment
       shell: bash
       env:
@@ -67,7 +112,7 @@ runs:
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
         if [ "${{ inputs.no_wait }}" = "true" ]; then
-          "${GITHUB_ACTION_PATH}/bin/php" "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar" --no-wait
+          "${GITHUB_ACTION_PATH}/bin/php" "${PHAR_PATH}" --no-wait
         else
-          "${GITHUB_ACTION_PATH}/bin/php" "${GITHUB_ACTION_PATH}/dist/laravel-cloud-deploy.phar"
+          "${GITHUB_ACTION_PATH}/bin/php" "${PHAR_PATH}"
         fi
