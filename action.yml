@@ -58,4 +58,4 @@ runs:
         LARAVEL_CLOUD_WAIT: ${{ inputs.wait }}
         LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
-      run: php scripts/deploy.php
+      run: php "${{ github.action_path }}/scripts/deploy.php"
