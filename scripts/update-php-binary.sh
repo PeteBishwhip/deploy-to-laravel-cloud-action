@@ -32,6 +32,8 @@ php bin/spc craft
 
 popd >/dev/null
 
+rm -rf "${WORK_DIR}"
+
 BUILD_OUTPUT="${WORK_DIR}/buildroot/bin/php"
 if [ ! -x "${BUILD_OUTPUT}" ]; then
   echo "Failed to build PHP binary at ${BUILD_OUTPUT}" >&2
