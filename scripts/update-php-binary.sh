@@ -20,7 +20,9 @@ fi
 composer install --no-interaction --no-progress
 
 php bin/spc download --with-php="${PHP_VERSION}" --for-extensions="${EXTENSIONS}"
-php bin/spc build --build-cli --with-php="${PHP_VERSION}" --for-extensions="${EXTENSIONS}" --output="${OUTPUT_PATH}"
+
+IFS=',' read -r -a EXT_ARRAY <<< "${EXTENSIONS}"
+php bin/spc build --build-cli --output="${OUTPUT_PATH}" "${EXT_ARRAY[@]}"
 
 popd >/dev/null
 
