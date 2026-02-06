@@ -1,0 +1,61 @@
+name: Deploy to Laravel Cloud
+description: Trigger a Laravel Cloud deployment and optionally wait for it to finish.
+
+inputs:
+  api_token:
+    description: Laravel Cloud API token (Bearer token from the Cloud UI).
+    required: true
+  application_name:
+    description: Laravel Cloud application name (used to resolve the environment id).
+    required: false
+  environment_name:
+    description: Laravel Cloud environment name (used to resolve the environment id).
+    required: false
+  environment:
+    description: Laravel Cloud environment identifier (optional if using application_name + environment_name).
+    required: false
+  environment_id:
+    description: Alias for environment id (optional if using application_name + environment_name).
+    required: false
+  wait:
+    description: Whether to wait for the deployment to finish.
+    required: false
+    default: "true"
+  poll_interval_seconds:
+    description: Seconds between status checks when waiting.
+    required: false
+    default: "10"
+  timeout_seconds:
+    description: Maximum seconds to wait for deployment to finish.
+    required: false
+    default: "180"
+
+outputs:
+  deployment_id:
+    description: The Laravel Cloud deployment id.
+  deployment_status:
+    description: The final deployment status when waiting, or initial status when not waiting.
+  deployment_url:
+    description: API URL for the deployment resource if provided by the API.
+  success:
+    description: "true" when the deployment succeeds, otherwise "false".
+
+runs:
+  using: composite
+  steps:
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.5'
+        extensions: curl, json
+    - name: Trigger Laravel Cloud deployment
+      shell: bash
+      env:
+        LARAVEL_CLOUD_API_TOKEN: ${{ inputs.api_token }}
+        LARAVEL_CLOUD_ENVIRONMENT: ${{ inputs.environment_id != '' && inputs.environment_id || inputs.environment }}
+        LARAVEL_CLOUD_APPLICATION_NAME: ${{ inputs.application_name }}
+        LARAVEL_CLOUD_ENVIRONMENT_NAME: ${{ inputs.environment_name }}
+        LARAVEL_CLOUD_WAIT: ${{ inputs.wait }}
+        LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
+        LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
+      run: php scripts/deploy.php
