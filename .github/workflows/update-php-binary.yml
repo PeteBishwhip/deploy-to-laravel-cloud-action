@@ -1,0 +1,39 @@
+name: Update PHP Binary
+on:
+  workflow_dispatch:
+    inputs:
+      php_version:
+        description: PHP version to build
+        required: false
+        default: '8.5'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: curl, json, mbstring, zip
+      - name: Build static PHP binary
+        env:
+          PHP_VERSION: ${{ inputs.php_version }}
+        run: ./scripts/update-php-binary.sh
+      - name: Commit PHP binary
+        run: |
+          if git diff --quiet; then
+            echo "No PHP binary changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add bin/php-static
+          git commit -m "Update PHP binary"
+          git push

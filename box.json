@@ -1,0 +1,15 @@
+{
+  "main": "artisan",
+  "output": "dist/laravel-cloud.phar",
+  "chmod": "0755",
+  "compression": "GZ",
+  "directories": [
+    "app",
+    "bootstrap",
+    "config",
+    "vendor"
+  ],
+  "files": [
+    "artisan"
+  ]
+}

@@ -14,4 +14,4 @@ jobs:
           php-version: '8.5'
           extensions: curl, json
       - name: Run tests
-        run: php tests/deploy_test.php
+        run: php tests/url_helper_test.php
