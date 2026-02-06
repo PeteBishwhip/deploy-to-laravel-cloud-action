@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATIC_PHP="${SCRIPT_DIR}/php-static"
+
+if [ -x "${STATIC_PHP}" ]; then
+  exec "${STATIC_PHP}" "$@"
+fi
+
+if command -v php >/dev/null 2>&1; then
+  exec php "$@"
+fi
+
+echo "No bundled PHP runtime found." >&2
+echo "Expected: ${STATIC_PHP}" >&2
+echo "Run the update-php-binary workflow to generate it." >&2
+exit 1

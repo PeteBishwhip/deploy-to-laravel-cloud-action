@@ -37,17 +37,27 @@ outputs:
     description: The final deployment status when waiting, or initial status when not waiting.
   deployment_url:
     description: API URL for the deployment resource if provided by the API.
+  environment_url:
+    description: Environment URL (vanity domain if available, otherwise API link).
   success:
-    description: '"true" when the deployment succeeds, or when the deployment request is accepted if wait is "false"; otherwise "false".'
+    description: '"true" when the deployment succeeds; otherwise "false".'
 
 runs:
   using: composite
   steps:
-    - name: Set up PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.5'
-        extensions: curl, json
+    - name: Validate bundled runtime
+      shell: bash
+      run: |
+        if [ ! -x "${GITHUB_ACTION_PATH}/bin/php-static" ]; then
+          echo "Missing bundled PHP runtime at ${GITHUB_ACTION_PATH}/bin/php-static"
+          echo "Run the update-php-binary workflow to generate it."
+          exit 1
+        fi
+        if [ ! -f "${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar" ]; then
+          echo "Missing PHAR at ${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar"
+          echo "Run the build-phar workflow to generate it."
+          exit 1
+        fi
     - name: Trigger Laravel Cloud deployment
       shell: bash
       env:
@@ -58,4 +68,5 @@ runs:
         LARAVEL_CLOUD_WAIT: ${{ inputs.wait }}
         LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
-      run: php "${{ github.action_path }}/scripts/deploy.php"
+      run: |
+        "${GITHUB_ACTION_PATH}/bin/php" "${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar" cloud:deploy

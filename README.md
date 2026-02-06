@@ -2,6 +2,8 @@
 
 Triggers a Laravel Cloud deployment for a specific environment. Optionally waits for completion and reports success.
 
+This action runs a bundled PHAR (`dist/laravel-cloud.phar`) using a bundled static PHP binary (`bin/php-static`) so no runtime setup is required.
+
 ## Inputs
 - `api_token` (required): Laravel Cloud API token.
 - `application_name` (optional): Laravel Cloud application name (used to resolve the environment id).
@@ -16,7 +18,8 @@ Triggers a Laravel Cloud deployment for a specific environment. Optionally waits
 - `deployment_id`: The deployment id.
 - `deployment_status`: Final status when waiting, or initial status otherwise.
 - `deployment_url`: API URL for the deployment resource if available.
-- `success`: `true` when the deployment succeeds, or when the deployment request is accepted if `wait: false`.
+- `environment_url`: Environment URL (vanity domain if available, otherwise API link).
+- `success`: `true` when the deployment succeeds.
 
 ## Example
 
@@ -61,3 +64,9 @@ jobs:
           environment_name: production
           wait: false
 ```
+
+## Maintenance
+
+Use the manual workflows to keep the bundled runtime up to date:
+- `Update PHP Binary`: rebuilds `bin/php-static` using static-php-cli.
+- `Build PHAR`: rebuilds `dist/laravel-cloud.phar` using Box.
