@@ -10,13 +10,13 @@ Triggers a Laravel Cloud deployment for a specific environment. Optionally waits
 - `environment_id` (optional): Alias for environment id (alternative to names).
 - `wait` (optional, default `true`): Wait for the deployment to finish.
 - `poll_interval_seconds` (optional, default `10`): Seconds between status checks.
-- `timeout_seconds` (optional, default `1800`): Maximum time to wait.
+- `timeout_seconds` (optional, default `180`): Maximum time to wait.
 
 ## Outputs
 - `deployment_id`: The deployment id.
 - `deployment_status`: Final status when waiting, or initial status otherwise.
 - `deployment_url`: API URL for the deployment resource if available.
-- `success`: `true` when the deployment succeeds.
+- `success`: `true` when the deployment succeeds, or when the deployment request is accepted if `wait: false`.
 
 ## Example
 
@@ -48,4 +48,16 @@ jobs:
         with:
           api_token: ${{ secrets.LARAVEL_CLOUD_API_TOKEN }}
           environment_id: ${{ secrets.LARAVEL_CLOUD_ENVIRONMENT_ID }}
+```
+
+## Trigger only (do not wait)
+
+```yaml
+      - name: Trigger deployment
+        uses: ./.
+        with:
+          api_token: ${{ secrets.LARAVEL_CLOUD_API_TOKEN }}
+          application_name: My App
+          environment_name: production
+          wait: false
 ```
