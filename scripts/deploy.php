@@ -26,6 +26,23 @@ function set_output(string $name, string $value): void
     file_put_contents($outputPath, $name . '=' . $value . "\n", FILE_APPEND);
 }
 
+function normalize_link(mixed $link): ?string
+{
+    if ($link === null) {
+        return null;
+    }
+    if (is_string($link)) {
+        return $link;
+    }
+    if (is_array($link)) {
+        $href = $link['href'] ?? null;
+        if (is_string($href)) {
+            return $href;
+        }
+    }
+    return null;
+}
+
 function append_summary(string $line): void
 {
     $summaryPath = getenv('GITHUB_STEP_SUMMARY');
@@ -91,6 +108,10 @@ function request(string $method, string $path, string $token, ?array $body = nul
     }
 
     return [$status, $payload, $raw];
+}
+
+if (defined('LARAVEL_CLOUD_DEPLOY_TEST')) {
+    return;
 }
 
 $token = env('LARAVEL_CLOUD_API_TOKEN', true);
@@ -234,7 +255,7 @@ if (!$deployment || !isset($deployment['id'])) {
 
 $deploymentId = $deployment['id'];
 $deploymentStatus = $deployment['attributes']['status'] ?? 'unknown';
-$deploymentLink = $deployment['links']['self'] ?? null;
+$deploymentLink = normalize_link($deployment['links']['self'] ?? null);
 
 set_output('deployment_id', $deploymentId);
 if ($deploymentLink) {
@@ -245,7 +266,7 @@ fwrite(STDOUT, "Deployment started: {$deploymentId} (status: {$deploymentStatus}
 
 if (!$shouldWait) {
     set_output('deployment_status', $deploymentStatus);
-    set_output('success', 'true');
+    set_output('success', 'false');
     append_summary("Deployment triggered: `{$deploymentId}`");
     exit(0);
 }
