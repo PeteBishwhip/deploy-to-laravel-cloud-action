@@ -19,8 +19,8 @@ fi
 
 composer install --no-interaction --no-progress
 
-php bin/spc download --for-php="${PHP_VERSION}" --with-extensions="${EXTENSIONS}"
-php bin/spc build --build-cli --for-php="${PHP_VERSION}" --with-extensions="${EXTENSIONS}" --output="${OUTPUT_PATH}"
+php bin/spc download --with-php="${PHP_VERSION}" --for-extensions="${EXTENSIONS}"
+php bin/spc build --build-cli --with-php="${PHP_VERSION}" --for-extensions="${EXTENSIONS}" --output="${OUTPUT_PATH}"
 
 popd >/dev/null
 
