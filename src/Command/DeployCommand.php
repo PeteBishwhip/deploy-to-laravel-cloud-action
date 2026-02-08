@@ -58,6 +58,14 @@ class DeployCommand extends Command
             $out->fail('Missing required env var: LARAVEL_CLOUD_API_TOKEN', 'config_error', 2);
         }
 
+        $debug = getenv('ACTIONS_STEP_DEBUG') === 'true' || getenv('RUNNER_DEBUG') === '1';
+        if ($debug) {
+            $tokenLen = strlen($token);
+            $tokenPrefix = substr($token, 0, 6);
+            $tokenSuffix = substr($token, -4);
+            fwrite(STDERR, "[debug] token_length={$tokenLen} token_prefix={$tokenPrefix} token_suffix={$tokenSuffix}\n");
+        }
+
         $shouldWait = (bool) $shouldWait;
 
         if ($environmentId === null || $environmentId === '') {
@@ -70,7 +78,12 @@ class DeployCommand extends Command
 
         $environmentUrl = $this->resolveEnvironmentUrl($api, $token, $environmentId);
 
-        $response = $api->request('POST', "/environments/{$environmentId}/deployments", $token);
+        $payload = ['data' => ['type' => 'deployments']];
+        $debug = getenv('ACTIONS_STEP_DEBUG') === 'true' || getenv('RUNNER_DEBUG') === '1';
+        if ($debug) {
+            fwrite(STDERR, "[debug] deploy_payload=" . json_encode($payload) . "\n");
+        }
+        $response = $api->request('POST', "/environments/{$environmentId}/deployments", $token, $payload);
         if ($response['status'] === 0) {
             $out->fail('Failed to initiate deployment (network error).', 'api_error', 1, $response['raw']);
         }
@@ -308,7 +321,7 @@ class DeployCommand extends Command
     {
         $value = $input->getOption($option);
         if (is_string($value) && $value !== '') {
-            return $value;
+            return trim($value);
         }
 
         $envValue = getenv($env);
@@ -316,7 +329,7 @@ class DeployCommand extends Command
             return null;
         }
 
-        return $envValue;
+        return trim($envValue);
     }
 
 }

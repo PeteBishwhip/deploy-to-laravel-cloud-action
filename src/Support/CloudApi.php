@@ -14,7 +14,7 @@ class CloudApi
     public function __construct()
     {
         $this->client = new Client([
-            'base_uri' => 'https://cloud.laravel.com/api',
+            'base_uri' => 'https://cloud.laravel.com',
             'http_errors' => false,
             'headers' => [
                 'Accept' => 'application/vnd.api+json',
@@ -29,7 +29,15 @@ class CloudApi
      */
     public function request(string $method, string $path, string $token, ?array $body = null): array
     {
-        $path = ltrim($path, '/');
+        $path = '/' . ltrim($path, '/');
+        if (!str_starts_with($path, '/api/')) {
+            $path = '/api' . $path;
+        }
+        $debug = getenv('ACTIONS_STEP_DEBUG') === 'true' || getenv('RUNNER_DEBUG') === '1';
+        if ($debug) {
+            $baseUri = rtrim((string) $this->client->getConfig('base_uri'), '/');
+            fwrite(STDERR, "[cloud-api] {$method} {$baseUri}{$path}\n");
+        }
         $options = [
             'headers' => [
                 'Authorization' => 'Bearer ' . $token,
