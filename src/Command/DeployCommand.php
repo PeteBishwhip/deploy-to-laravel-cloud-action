@@ -44,6 +44,14 @@ class DeployCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        fwrite(STDOUT, " _                      _             _____ _                 _\n");
+        fwrite(STDOUT, "| |                    | |           / ____| |               | |\n");
+        fwrite(STDOUT, "| |     __ _ _ __ ___  | | ___  ___ | |    | | ___  _   _  __| |\n");
+        fwrite(STDOUT, "| |    / _` | '__/ _ \\ | |/ _ \\/ _ \\| |    | |/ _ \\| | | |/ _` |\n");
+        fwrite(STDOUT, "| |___| (_| | | |  __/ | |  __/ (_) | |____| | (_) | |_| | (_| |\n");
+        fwrite(STDOUT, "|______\\__,_|_|  \\___| |_|\\___|\\___/ \\_____|_|\\___/ \\__,_|\\__,_|\n");
+        fwrite(STDOUT, "\n");
+
         $token = $this->optionOrEnv($input, 'api-key', 'LARAVEL_CLOUD_API_TOKEN');
         $environmentId = $this->optionOrEnv($input, 'environment', 'LARAVEL_CLOUD_ENVIRONMENT');
         $applicationName = $this->optionOrEnv($input, 'application-name', 'LARAVEL_CLOUD_APPLICATION_NAME');
@@ -157,7 +165,12 @@ class DeployCommand extends Command
             'We’re riding a steady tailwind.',
         ];
 
-        fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
+        $inActions = getenv('GITHUB_ACTIONS') === 'true';
+        if ($inActions) {
+            fwrite(STDOUT, "::notice::Build started. Waiting for deployment to begin...\n");
+        } else {
+            fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
+        }
 
         while (true) {
             if (time() - $start > $timeoutSeconds) {
@@ -184,13 +197,17 @@ class DeployCommand extends Command
 
             if (!$deploymentLogged && str_starts_with($deploymentStatus, 'deployment.')) {
                 $deploymentLogged = true;
-                fwrite(STDOUT, "Deployment step started.\n");
+                if ($inActions) {
+                    fwrite(STDOUT, "::notice::Deployment step started.\n");
+                } else {
+                    fwrite(STDOUT, "Deployment step started.\n");
+                }
             }
 
             if (!$noChatter && time() >= $nextChatterAt) {
                 $nextChatterAt = time() + $chatterInterval;
                 $message = $chatterMessages[array_rand($chatterMessages)];
-                fwrite(STDOUT, "{$message}\n");
+                fwrite(STDOUT, "Still running — {$message}\n");
             }
 
             if (in_array($deploymentStatus, $terminalSuccess, true)) {
@@ -200,7 +217,11 @@ class DeployCommand extends Command
                 if ($environmentUrl) {
                     $out->summary("Environment: {$environmentUrl}");
                 }
-                fwrite(STDOUT, "Deployment completed successfully.\n");
+                if ($inActions) {
+                    fwrite(STDOUT, "::notice::Deployment completed successfully.\n");
+                } else {
+                    fwrite(STDOUT, "Deployment completed successfully.\n");
+                }
                 if ($environmentUrl) {
                     fwrite(STDOUT, "Environment: {$environmentUrl}\n");
                 }
