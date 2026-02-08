@@ -132,15 +132,16 @@ class DeployCommand extends Command
         $start = time();
         $nextChatterAt = $start;
         $chatterInterval = 10;
+        $inActions = getenv('GITHUB_ACTIONS') === 'true';
         $chatterMessages = [
             'Small steps still move the deploy forward.',
             'If you want the rainbow, you must wait out the build.',
             'The future is compiled one step at a time.',
             'Patience is just good caching.',
-            'Still running — your app is getting ready to shine.',
+            'Your app is getting ready to shine.',
             'A calm mind ships better code.',
             'This is the way of the framework.',
-            'The build is still running. But you’re just sat there, watching this.',
+            'The build is running, and you’re just sat there, watching this.',
             'The cloud is thick with progress.',
             'Your deploy is circling the runway.',
             'Shipping soon — the sky is clearing.',
@@ -155,14 +156,35 @@ class DeployCommand extends Command
             'The forecast says: deployment with a high chance of joy.',
             'Cloud City approves this build.',
             'We’re riding a steady tailwind.',
+            'Deploying in the stratosphere.',
+            'The queue is calm; the clouds are busy.',
+            'All signs point to green skies.',
+            'Clouds are moving; the release is coming.',
+            'The wind is at our back; the build continues.',
+            'Compiling with a chance of success.',
+            'The cloud is whispering: almost there.',
+            'A light drizzle of progress.',
+            'Deployment pressure dropping steadily.',
+            'You’re up in the cloud, and the view is good.',
+            'Cirrus signals say: keep watching.',
+            'The runway lights are on.',
+            'A soft rumble in the build layer.',
+            'We’ve caught a thermal updraft.',
+            'Deploy haze, then sunshine.',
+            'Your app is climbing altitude.',
+            'Blue skies ahead, just a moment.',
+            'The jet stream is in our favor.',
+            'Skyline loading, please stand by.',
+            'Clouds are just servers wearing weather.',
         ];
-
-        $inActions = getenv('GITHUB_ACTIONS') === 'true';
         if ($inActions) {
-            fwrite(STDOUT, "::notice::Build started. Waiting for deployment to begin...\n");
+            $noticePrefix = "\033[1;34m";
+            $noticeSuffix = "\033[0m";
         } else {
-            fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
+            $noticePrefix = '';
+            $noticeSuffix = '';
         }
+        fwrite(STDOUT, "{$noticePrefix}Build started. Waiting for deployment to begin...{$noticeSuffix}\n");
 
         while (true) {
             if (time() - $start > $timeoutSeconds) {
@@ -189,16 +211,18 @@ class DeployCommand extends Command
 
             if (!$deploymentLogged && str_starts_with($deploymentStatus, 'deployment.')) {
                 $deploymentLogged = true;
-                if ($inActions) {
-                    fwrite(STDOUT, "::notice::Deployment step started.\n");
-                } else {
-                    fwrite(STDOUT, "Deployment step started.\n");
-                }
+                fwrite(STDOUT, "{$noticePrefix}Deployment step started.{$noticeSuffix}\n");
             }
 
             if (!$noChatter && time() >= $nextChatterAt) {
                 $nextChatterAt = time() + $chatterInterval;
-                $message = $chatterMessages[array_rand($chatterMessages)];
+                if (count($chatterMessages) > 0) {
+                    $index = array_rand($chatterMessages);
+                    $message = $chatterMessages[$index];
+                    array_splice($chatterMessages, (int) $index, 1);
+                } else {
+                    $message = 'Still running — the clouds are quiet for a moment.';
+                }
                 fwrite(STDOUT, "Still running — {$message}\n");
             }
 
@@ -209,11 +233,7 @@ class DeployCommand extends Command
                 if ($environmentUrl) {
                     $out->summary("Environment: {$environmentUrl}");
                 }
-                if ($inActions) {
-                    fwrite(STDOUT, "::notice::Deployment completed successfully.\n");
-                } else {
-                    fwrite(STDOUT, "Deployment completed successfully.\n");
-                }
+                fwrite(STDOUT, "{$noticePrefix}Deployment completed successfully.{$noticeSuffix}\n");
                 if ($environmentUrl) {
                     fwrite(STDOUT, "Environment: {$environmentUrl}\n");
                 }
