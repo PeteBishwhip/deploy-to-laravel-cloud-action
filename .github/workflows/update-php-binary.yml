@@ -16,15 +16,16 @@ on:
 
 env:
   SPC_VERSION: 2.7.1
+  DEFAULT_PHP_VERSION: '8.5'
 
 jobs:
   build:
-    name: ${{ inputs.php_version }} ${{ matrix.os }}
+    name: ${{ inputs.php_version || '8.5' }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: ["macos-latest", "windows-latest", "ubuntu-latest"]
+        os: ["macos-13", "macos-latest", "windows-latest", "ubuntu-latest", "ubuntu-24.04-arm"]
 
     continue-on-error: true
 
@@ -35,20 +36,30 @@ jobs:
         shell: bash
         run: echo "SPC_BINARY=spc" >> $GITHUB_ENV
 
-      - name: Set SPC URL for macOS
+      - name: Set SPC URL for macos-13
+        shell: bash
+        if: matrix.os == 'macos-13'
+        run: echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-macos-x86_64.tar.gz" >> $GITHUB_ENV
+
+      - name: Set SPC URL for macos-latest
         shell: bash
         if: matrix.os == 'macos-latest'
         run: echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-macos-aarch64.tar.gz" >> $GITHUB_ENV
 
-      - name: Set SPC URL for Linux
+      - name: Set SPC URL for ubuntu-latest
         shell: bash
         if: matrix.os == 'ubuntu-latest'
         run: echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-linux-x86_64.tar.gz" >> $GITHUB_ENV
 
-      - name: Set SPC URL for Windows
+      - name: Set SPC URL for ubuntu-24.04-arm
+        shell: bash
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-linux-aarch64.tar.gz" >> $GITHUB_ENV
+
+      - name: Set SPC URL for windows-latest
         shell: bash
         if: matrix.os == 'windows-latest'
-        run: |
+        run: | 
           echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-windows-x64.exe" >> $GITHUB_ENV
           echo "SPC_BINARY=spc.exe" >> $GITHUB_ENV
 
@@ -57,32 +68,37 @@ jobs:
         run: |
           cd ..
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            curl -fsSL -o "${SPC_BINARY}" "${SPC_URL}"
+            curl -fsSL -o ${SPC_BINARY} ${SPC_URL}
           else
-            curl -fsSL -o "${SPC_BINARY}.tar.gz" "${SPC_URL}"
-            tar -xzf "${SPC_BINARY}.tar.gz"
+            curl -fsSL -o ${SPC_BINARY}.tar.gz ${SPC_URL}
+            tar -xzf ${SPC_BINARY}.tar.gz
           fi
-          chmod +x "${SPC_BINARY}"
-          mkdir -p static-php-cli/bin
-          mv "${SPC_BINARY}" static-php-cli/bin/
+          chmod +x ${SPC_BINARY}
+          [ ! -d static-php-cli/bin ] && mkdir -p static-php-cli/bin
+          mv ${SPC_BINARY} static-php-cli/bin/
 
       - name: Create php-bin directory
         shell: bash
         run: |
           cd ..
-          mkdir -p php-bin
+          [ ! -d php-bin ] && mkdir -p php-bin
           cd php-bin
 
       - shell: bash
         run: |
-          PHP_VERSION=$(echo "${{ inputs.php_version }}" | cut -d. -f1,2)
+          PHP_VERSION="${{ inputs.php_version || env.DEFAULT_PHP_VERSION }}"
+          PHP_VERSION=$(echo "$PHP_VERSION" | cut -d. -f1,2)
           echo "PHP_VERSION=$PHP_VERSION" >> $GITHUB_ENV
 
       - shell: bash
         run: echo "SPC_BUILD_ARCH=x64" >> $GITHUB_ENV
 
       - shell: bash
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-24.04-arm'
+        run: echo "SPC_BUILD_ARCH=arm64" >> $GITHUB_ENV
+
+      - shell: bash
+        if: contains(matrix.os, 'macos')
         run: |
           brew install automake gzip
           echo "SPC_BUILD_OS=mac" >> $GITHUB_ENV
@@ -92,7 +108,7 @@ jobs:
         run: echo "SPC_BUILD_OS=win" >> $GITHUB_ENV
 
       - shell: bash
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: echo "SPC_BUILD_OS=linux" >> $GITHUB_ENV
 
       - name: Setup system PHP
@@ -104,7 +120,6 @@ jobs:
           ini-values: memory_limit=-1
 
       - name: SPC doctor
-        shell: bash
         run: |
           cd ../static-php-cli
           ./bin/${{ env.SPC_BINARY }} doctor
@@ -114,7 +129,7 @@ jobs:
         id: read-extensions
         shell: bash
         run: |
-          EXTENSIONS=$(php -r "echo trim(file_get_contents('${GITHUB_WORKSPACE}/php-extensions.txt'));")
+          EXTENSIONS=$(php -r "echo trim(file_get_contents('${GITHUB_WORKSPACE}/php-extensions.txt'));" )
           EXT_HASH=$(php -r "echo md5('${EXTENSIONS}');")
           echo "PHP_EXTENSIONS=$EXTENSIONS" >> $GITHUB_ENV
           echo "PHP_EXT_HASH=$EXT_HASH" >> $GITHUB_ENV
@@ -123,7 +138,7 @@ jobs:
         id: read-libs
         shell: bash
         run: |
-          LIBRARIES=$(php -r "echo trim(file_get_contents('${GITHUB_WORKSPACE}/php-libraries.txt'));")
+          LIBRARIES=$(php -r "echo trim(file_get_contents('${GITHUB_WORKSPACE}/php-libraries.txt'));" )
           LIBRARIES_HASH=$(php -r "echo md5('${LIBRARIES}');")
           echo "PHP_LIBS=$LIBRARIES" >> $GITHUB_ENV
 
@@ -137,7 +152,7 @@ jobs:
         if: steps.cache-spc-downloads.outputs.cache-hit != 'true'
         run: |
           cd ../static-php-cli
-          ./bin/${{ env.SPC_BINARY }} download --with-php=${{ inputs.php_version }} --for-extensions "${{ env.PHP_EXTENSIONS }}" --prefer-pre-built
+          ./bin/${{ env.SPC_BINARY }} download --with-php=${{ env.PHP_VERSION }} --for-extensions "${{ env.PHP_EXTENSIONS }}" --prefer-pre-built
           cd ../php-bin
 
       - name: Build PHP
@@ -151,9 +166,15 @@ jobs:
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             cp ../static-php-cli/buildroot/bin/php.exe "${GITHUB_WORKSPACE}/bin/php-windows.exe"
+          elif [[ "${{ matrix.os }}" == "macos-13" ]]; then
+            cp ../static-php-cli/buildroot/bin/php "${GITHUB_WORKSPACE}/bin/php-macos-x86_64"
+            chmod +x "${GITHUB_WORKSPACE}/bin/php-macos-x86_64"
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             cp ../static-php-cli/buildroot/bin/php "${GITHUB_WORKSPACE}/bin/php-macos"
             chmod +x "${GITHUB_WORKSPACE}/bin/php-macos"
+          elif [[ "${{ matrix.os }}" == "ubuntu-24.04-arm" ]]; then
+            cp ../static-php-cli/buildroot/bin/php "${GITHUB_WORKSPACE}/bin/php-linux-arm64"
+            chmod +x "${GITHUB_WORKSPACE}/bin/php-linux-arm64"
           else
             cp ../static-php-cli/buildroot/bin/php "${GITHUB_WORKSPACE}/bin/php-linux"
             chmod +x "${GITHUB_WORKSPACE}/bin/php-linux"
@@ -166,7 +187,7 @@ jobs:
           title: "Update PHP ${{ env.PHP_VERSION }} build for ${{ env.SPC_BUILD_OS }} ${{ env.SPC_BUILD_ARCH }}"
           commit-message: "build"
           body: |
-            PHP: ${{ inputs.php_version }}
+            PHP: ${{ env.PHP_VERSION }}
             Exts: ${{ env.PHP_EXTENSIONS }}
             OS: ${{ env.SPC_BUILD_OS }}
             Arch: ${{ env.SPC_BUILD_ARCH }}
