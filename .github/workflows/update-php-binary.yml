@@ -137,11 +137,6 @@ jobs:
           LIBRARIES_HASH=$(php -r "echo md5('${LIBRARIES}');")
           echo "PHP_LIBS=$LIBRARIES" >> $GITHUB_ENV
 
-      - name: Override libraries for Windows
-        shell: bash
-        if: matrix.os == 'windows-latest'
-        run: echo "PHP_LIBS=nghttp2" >> $GITHUB_ENV
-
       - id: cache-spc-downloads
         uses: actions/cache@v4
         with:
