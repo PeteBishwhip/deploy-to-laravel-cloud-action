@@ -42,6 +42,10 @@ outputs:
   success:
     description: '"true" when the deployment succeeds; otherwise "false".'
 
+branding:
+  icon: cloud
+  color: blue
+
 runs:
   using: composite
   steps:
