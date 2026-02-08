@@ -78,7 +78,12 @@ class DeployCommand extends Command
 
         $environmentUrl = $this->resolveEnvironmentUrl($api, $token, $environmentId);
 
-        $response = $api->request('POST', "/environments/{$environmentId}/deployments", $token);
+        $payload = ['data' => ['type' => 'deployments']];
+        $debug = getenv('ACTIONS_STEP_DEBUG') === 'true' || getenv('RUNNER_DEBUG') === '1';
+        if ($debug) {
+            fwrite(STDERR, "[debug] deploy_payload=" . json_encode($payload) . "\n");
+        }
+        $response = $api->request('POST', "/environments/{$environmentId}/deployments", $token, $payload);
         if ($response['status'] === 0) {
             $out->fail('Failed to initiate deployment (network error).', 'api_error', 1, $response['raw']);
         }
