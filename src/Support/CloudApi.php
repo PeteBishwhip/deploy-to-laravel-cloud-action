@@ -29,6 +29,7 @@ class CloudApi
      */
     public function request(string $method, string $path, string $token, ?array $body = null): array
     {
+        $path = ltrim($path, '/');
         $options = [
             'headers' => [
                 'Authorization' => 'Bearer ' . $token,

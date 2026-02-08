@@ -43,7 +43,7 @@ class DeployCommandTest extends TestCase
             {
                 $this->calls[] = [$method, $path];
 
-                if ($path === '/applications?filter%5Bname%5D=My%20App') {
+                if ($path === 'applications?filter%5Bname%5D=My%20App') {
                     return ['status' => 200, 'payload' => [
                         'data' => [[
                             'id' => 'app_1',
@@ -55,7 +55,7 @@ class DeployCommandTest extends TestCase
                     ], 'raw' => '{}'];
                 }
 
-                if ($path === '/applications/app_1/environments?filter%5Bname%5D=production') {
+                if ($path === 'applications/app_1/environments?filter%5Bname%5D=production') {
                     return ['status' => 200, 'payload' => [
                         'data' => [[
                             'id' => 'env_1',
@@ -67,7 +67,7 @@ class DeployCommandTest extends TestCase
                     ], 'raw' => '{}'];
                 }
 
-                if ($path === '/environments/env_1') {
+                if ($path === 'environments/env_1') {
                     return ['status' => 200, 'payload' => [
                         'data' => [
                             'attributes' => [
@@ -80,7 +80,7 @@ class DeployCommandTest extends TestCase
                     ], 'raw' => '{}'];
                 }
 
-                if ($path === '/environments/env_1/deployments') {
+                if ($path === 'environments/env_1/deployments') {
                     return ['status' => 200, 'payload' => [
                         'data' => [
                             'id' => 'dep_1',
@@ -109,10 +109,10 @@ class DeployCommandTest extends TestCase
 
         $this->assertSame(0, $exitCode);
         $this->assertSame([
-            ['GET', '/applications?filter%5Bname%5D=My%20App'],
-            ['GET', '/applications/app_1/environments?filter%5Bname%5D=production'],
-            ['GET', '/environments/env_1'],
-            ['POST', '/environments/env_1/deployments'],
+            ['GET', 'applications?filter%5Bname%5D=My%20App'],
+            ['GET', 'applications/app_1/environments?filter%5Bname%5D=production'],
+            ['GET', 'environments/env_1'],
+            ['POST', 'environments/env_1/deployments'],
         ], $api->calls);
     }
 }
