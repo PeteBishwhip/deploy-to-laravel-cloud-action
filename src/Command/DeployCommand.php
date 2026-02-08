@@ -157,7 +157,12 @@ class DeployCommand extends Command
             'We’re riding a steady tailwind.',
         ];
 
-        fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
+        $inActions = getenv('GITHUB_ACTIONS') === 'true';
+        if ($inActions) {
+            fwrite(STDOUT, "::notice::Build started. Waiting for deployment to begin...\n");
+        } else {
+            fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
+        }
 
         while (true) {
             if (time() - $start > $timeoutSeconds) {
@@ -184,7 +189,11 @@ class DeployCommand extends Command
 
             if (!$deploymentLogged && str_starts_with($deploymentStatus, 'deployment.')) {
                 $deploymentLogged = true;
-                fwrite(STDOUT, "Deployment step started.\n");
+                if ($inActions) {
+                    fwrite(STDOUT, "::notice::Deployment step started.\n");
+                } else {
+                    fwrite(STDOUT, "Deployment step started.\n");
+                }
             }
 
             if (!$noChatter && time() >= $nextChatterAt) {
@@ -200,7 +209,11 @@ class DeployCommand extends Command
                 if ($environmentUrl) {
                     $out->summary("Environment: {$environmentUrl}");
                 }
-                fwrite(STDOUT, "Deployment completed successfully.\n");
+                if ($inActions) {
+                    fwrite(STDOUT, "::notice::Deployment completed successfully.\n");
+                } else {
+                    fwrite(STDOUT, "Deployment completed successfully.\n");
+                }
                 if ($environmentUrl) {
                     fwrite(STDOUT, "Environment: {$environmentUrl}\n");
                 }
