@@ -52,6 +52,7 @@ runs:
     - name: Select bundled PHP
       shell: bash
       run: |
+        echo "::group::Select PHP Runtime"
         case "${{ runner.os }}" in
           Linux)
             if [ "${{ runner.arch }}" = "ARM64" ]; then
@@ -74,12 +75,15 @@ runs:
           exit 1
         fi
         echo "PHP_BIN=${php_bin}" >> "${GITHUB_ENV}"
+        echo "Using ${php_bin}"
+        echo "::endgroup::"
     - name: Download PHAR release
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
         ACTION_REPO: ${{ github.action_repository }}
       run: |
+        echo "::group::Download PHAR"
         if [ -z "${ACTION_REPO}" ]; then
           ACTION_REPO="${GITHUB_REPOSITORY}"
         fi
@@ -123,6 +127,8 @@ runs:
         fi
 
         echo "PHAR_PATH=${phar_path}" >> "${GITHUB_ENV}"
+        echo "Downloaded to ${phar_path}"
+        echo "::endgroup::"
     - name: Trigger Laravel Cloud deployment
       shell: bash
       env:
@@ -133,8 +139,12 @@ runs:
         LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
+        echo "::group::Deploy"
         if [ "${{ inputs.no_wait }}" = "true" ]; then
+          echo "Triggering deployment (no-wait)..."
           "${PHP_BIN}" "${PHAR_PATH}" --no-wait
         else
+          echo "Triggering deployment and waiting..."
           "${PHP_BIN}" "${PHAR_PATH}"
         fi
+        echo "::endgroup::"
