@@ -30,6 +30,8 @@ class CloudApi
     public function request(string $method, string $path, string $token, ?array $body = null): array
     {
         $path = ltrim($path, '/');
+        $baseUri = (string) $this->client->getConfig('base_uri');
+        fwrite(STDERR, "[cloud-api] {$method} {$baseUri}{$path}\n");
         $options = [
             'headers' => [
                 'Authorization' => 'Bearer ' . $token,
