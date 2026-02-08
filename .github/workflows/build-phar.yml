@@ -30,9 +30,25 @@ jobs:
           name: ${{ inputs.tag }}
           generate_release_notes: true
           files: dist/laravel-cloud-deploy
-      - name: Publish tag
+      - name: Publish major tag
         shell: bash
         run: |
-          newTag=$(echo "${{ inputs.tag }}" | sed -E 's/^v?([0-9]+).*/v\\1/')
-          git tag -f "${newTag}"
-          git push origin "${newTag}" -f
+          tag="${{ inputs.tag }}"
+          tag="${tag#v}"
+          major="v${tag%%.*}"
+          git tag -f "${major}"
+          git push origin "${major}" -f
+      - name: Rollback release on failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ inputs.tag }}"
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          release_id=$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" "${api}/releases/tags/${tag}" | "${GITHUB_ACTION_PATH}/bin/php-linux" -r 'echo json_decode(stream_get_contents(STDIN), true)["id"] ?? "";')
+          if [ -n "${release_id}" ]; then
+            curl -fsSL -X DELETE -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" "${api}/releases/${release_id}" || true
+          fi
+          ref_tag="tags/${tag}"
+          curl -fsSL -X DELETE -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" "${api}/git/refs/${ref_tag}" || true
