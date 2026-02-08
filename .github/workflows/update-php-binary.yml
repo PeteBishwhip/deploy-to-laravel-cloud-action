@@ -137,6 +137,11 @@ jobs:
           LIBRARIES_HASH=$(php -r "echo md5('${LIBRARIES}');")
           echo "PHP_LIBS=$LIBRARIES" >> $GITHUB_ENV
 
+      - name: Override libraries for Windows
+        shell: bash
+        if: matrix.os == 'windows-latest'
+        run: echo "PHP_LIBS=nghttp2" >> $GITHUB_ENV
+
       - id: cache-spc-downloads
         uses: actions/cache@v4
         with:
@@ -153,7 +158,11 @@ jobs:
       - name: Build PHP
         run: |
           cd ../static-php-cli
-          ./bin/${{ env.SPC_BINARY }} build --build-cli "${{ env.PHP_EXTENSIONS }}" --with-libs="${{ env.PHP_LIBS }}" --debug
+          if [[ -n "${{ env.PHP_LIBS }}" ]]; then
+            ./bin/${{ env.SPC_BINARY }} build --build-cli "${{ env.PHP_EXTENSIONS }}" --with-libs="${{ env.PHP_LIBS }}" --debug
+          else
+            ./bin/${{ env.SPC_BINARY }} build --build-cli "${{ env.PHP_EXTENSIONS }}" --debug
+          fi
           cd ../php-bin
 
       - name: Copy PHP binary into repo
