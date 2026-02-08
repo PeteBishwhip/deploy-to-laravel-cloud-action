@@ -23,7 +23,7 @@ if [ ! -f "composer.json" ]; then
   exit 1
 fi
 
-composer install --no-interaction --no-progress
+composer install --no-dev --no-interaction --no-progress --prefer-dist
 
 cat > craft.yml <<EOF
 php-version: ${PHP_VERSION}
