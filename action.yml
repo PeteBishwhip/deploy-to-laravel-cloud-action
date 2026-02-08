@@ -54,13 +54,14 @@ runs:
       run: |
         case "${{ runner.os }}" in
           Linux)
-            php_bin="${GITHUB_ACTION_PATH}/bin/php-linux"
+            if [ "${{ runner.arch }}" = "ARM64" ]; then
+              php_bin="${GITHUB_ACTION_PATH}/bin/php-linux-arm64"
+            else
+              php_bin="${GITHUB_ACTION_PATH}/bin/php-linux"
+            fi
             ;;
           macOS)
             php_bin="${GITHUB_ACTION_PATH}/bin/php-macos"
-            ;;
-          Windows)
-            php_bin="${GITHUB_ACTION_PATH}/bin/php-windows.exe"
             ;;
           *)
             echo "Unsupported runner OS: ${{ runner.os }}"
