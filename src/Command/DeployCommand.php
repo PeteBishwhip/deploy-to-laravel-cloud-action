@@ -141,6 +141,20 @@ class DeployCommand extends Command
             'A calm mind ships better code.',
             'This is the way of the framework.',
             'The build is still running. But you’re just sat there, watching this.',
+            'The cloud is thick with progress.',
+            'Your deploy is circling the runway.',
+            'Shipping soon — the sky is clearing.',
+            'We’re in the cloud layer; keep an eye on the horizon.',
+            'A gentle breeze pushes the build along.',
+            'Cloud status: sunny with a chance of success.',
+            'Nimbus of progress detected.',
+            'Silver lining: your app is almost there.',
+            'Stratus of tasks still rolling by.',
+            'Cumulus momentum is building.',
+            'A small storm of compilation, then clear skies.',
+            'The forecast says: deployment with a high chance of joy.',
+            'Cloud City approves this build.',
+            'We’re riding a steady tailwind.',
         ];
 
         fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
