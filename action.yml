@@ -21,6 +21,10 @@ inputs:
     description: Do not wait for deployment to finish.
     required: false
     default: "false"
+  no_chatter:
+    description: Disable periodic status messages while waiting.
+    required: false
+    default: "false"
   poll_interval_seconds:
     description: Seconds between status checks when waiting.
     required: false
@@ -60,6 +64,7 @@ runs:
         LARAVEL_CLOUD_ENVIRONMENT_NAME: ${{ inputs.environment_name }}
         LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
+        LARAVEL_CLOUD_NO_CHATTER: ${{ inputs.no_chatter }}
       run: |
         echo "Select PHP Runtime..."
         case "${{ runner.os }}" in

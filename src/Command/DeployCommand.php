@@ -37,6 +37,7 @@ class DeployCommand extends Command
             ->addOption('application-name', null, InputOption::VALUE_OPTIONAL, 'Application name (falls back to LARAVEL_CLOUD_APPLICATION_NAME)')
             ->addOption('environment-name', null, InputOption::VALUE_OPTIONAL, 'Environment name (falls back to LARAVEL_CLOUD_ENVIRONMENT_NAME)')
             ->addOption('no-wait', null, InputOption::VALUE_NONE, 'Do not wait for deployment')
+            ->addOption('no-chatter', null, InputOption::VALUE_NONE, 'Disable periodic status messages while waiting')
             ->addOption('poll-interval', null, InputOption::VALUE_OPTIONAL, 'Poll interval seconds (falls back to LARAVEL_CLOUD_POLL_INTERVAL)')
             ->addOption('timeout', null, InputOption::VALUE_OPTIONAL, 'Timeout seconds (falls back to LARAVEL_CLOUD_TIMEOUT)');
     }
@@ -48,6 +49,7 @@ class DeployCommand extends Command
         $applicationName = $this->optionOrEnv($input, 'application-name', 'LARAVEL_CLOUD_APPLICATION_NAME');
         $environmentName = $this->optionOrEnv($input, 'environment-name', 'LARAVEL_CLOUD_ENVIRONMENT_NAME');
         $shouldWait = ! $input->getOption('no-wait');
+        $noChatter = $input->getOption('no-chatter');
         $pollInterval = (int) ($this->optionOrEnv($input, 'poll-interval', 'LARAVEL_CLOUD_POLL_INTERVAL') ?? '10');
         $timeoutSeconds = (int) ($this->optionOrEnv($input, 'timeout', 'LARAVEL_CLOUD_TIMEOUT') ?? '1800');
 
@@ -67,6 +69,12 @@ class DeployCommand extends Command
         }
 
         $shouldWait = (bool) $shouldWait;
+        if (!$noChatter) {
+            $envNoChatter = getenv('LARAVEL_CLOUD_NO_CHATTER');
+            if ($envNoChatter !== false && $envNoChatter !== '') {
+                $noChatter = in_array(strtolower(trim($envNoChatter)), ['1', 'true', 'yes', 'on'], true);
+            }
+        }
 
         if ($environmentId === null || $environmentId === '') {
             if ($applicationName === null || $applicationName === '' || $environmentName === null || $environmentName === '') {
@@ -122,6 +130,18 @@ class DeployCommand extends Command
         $terminalFailure = ['build.failed', 'failed', 'deployment.failed', 'cancelled'];
         $deploymentLogged = false;
         $start = time();
+        $nextChatterAt = $start;
+        $chatterInterval = 10;
+        $chatterMessages = [
+            'Small steps still move the deploy forward.',
+            'If you want the rainbow, you must wait out the build.',
+            'The future is compiled one step at a time.',
+            'Patience is just good caching.',
+            'Still running — your app is getting ready to shine.',
+            'A calm mind ships better code.',
+            'This is the way of the framework.',
+            'The build is still running. But you’re just sat there, watching this.',
+        ];
 
         fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
 
@@ -151,6 +171,12 @@ class DeployCommand extends Command
             if (!$deploymentLogged && str_starts_with($deploymentStatus, 'deployment.')) {
                 $deploymentLogged = true;
                 fwrite(STDOUT, "Deployment step started.\n");
+            }
+
+            if (!$noChatter && time() >= $nextChatterAt) {
+                $nextChatterAt = time() + $chatterInterval;
+                $message = $chatterMessages[array_rand($chatterMessages)];
+                fwrite(STDOUT, "{$message}\n");
             }
 
             if (in_array($deploymentStatus, $terminalSuccess, true)) {
