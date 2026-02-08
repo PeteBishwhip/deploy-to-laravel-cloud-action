@@ -1,6 +1,7 @@
-name: Build PHAR
+name: Build PHAR Release
 on:
-  workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -10,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -19,14 +18,7 @@ jobs:
           extensions: curl, json
       - name: Build PHAR
         run: ./scripts/build-phar.sh
-      - name: Commit PHAR
-        run: |
-          if git diff --quiet; then
-            echo "No PHAR changes to commit."
-            exit 0
-          fi
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add dist/laravel-cloud.phar
-          git commit -m "Update PHAR"
-          git push
+      - name: Upload PHAR to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/laravel-cloud-deploy

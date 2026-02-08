@@ -12,7 +12,18 @@ permissions:
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            output: bin/php-linux
+          - os: macos-latest
+            output: bin/php-macos
+          - os: windows-latest
+            output: bin/php-windows.exe
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,10 +34,13 @@ jobs:
           php-version: '8.5'
           extensions: curl, json, mbstring, zip
       - name: Build static PHP binary
+        shell: bash
         env:
           PHP_VERSION: ${{ inputs.php_version }}
+          OUTPUT_PATH: ${{ matrix.output }}
         run: ./scripts/update-php-binary.sh
       - name: Commit PHP binary
+        shell: bash
         run: |
           if git diff --quiet; then
             echo "No PHP binary changes to commit."
@@ -34,6 +48,6 @@ jobs:
           fi
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add bin/php-static
-          git commit -m "Update PHP binary"
+          git add ${{ matrix.output }}
+          git commit -m "Update PHP binary (${{ matrix.os }})"
           git push

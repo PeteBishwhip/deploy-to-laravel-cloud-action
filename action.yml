@@ -17,10 +17,10 @@ inputs:
   environment_id:
     description: Alias for environment id (optional if using application_name + environment_name).
     required: false
-  wait:
-    description: Whether to wait for the deployment to finish.
+  no_wait:
+    description: Do not wait for deployment to finish.
     required: false
-    default: "true"
+    default: "false"
   poll_interval_seconds:
     description: Seconds between status checks when waiting.
     required: false
@@ -42,22 +42,86 @@ outputs:
   success:
     description: '"true" when the deployment succeeds; otherwise "false".'
 
+branding:
+  icon: cloud
+  color: blue
+
 runs:
   using: composite
   steps:
-    - name: Validate bundled runtime
+    - name: Select bundled PHP
       shell: bash
       run: |
-        if [ ! -x "${GITHUB_ACTION_PATH}/bin/php-static" ]; then
-          echo "Missing bundled PHP runtime at ${GITHUB_ACTION_PATH}/bin/php-static"
-          echo "Run the update-php-binary workflow to generate it."
+        case "${{ runner.os }}" in
+          Linux)
+            php_bin="${GITHUB_ACTION_PATH}/bin/php-linux"
+            ;;
+          macOS)
+            php_bin="${GITHUB_ACTION_PATH}/bin/php-macos"
+            ;;
+          Windows)
+            php_bin="${GITHUB_ACTION_PATH}/bin/php-windows.exe"
+            ;;
+          *)
+            echo "Unsupported runner OS: ${{ runner.os }}"
+            exit 1
+            ;;
+        esac
+
+        if [ ! -x "${php_bin}" ]; then
+          echo "Missing static PHP binary at ${php_bin}"
           exit 1
         fi
-        if [ ! -f "${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar" ]; then
-          echo "Missing PHAR at ${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar"
-          echo "Run the build-phar workflow to generate it."
+        echo "PHP_BIN=${php_bin}" >> "${GITHUB_ENV}"
+    - name: Download PHAR release
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        ACTION_REPO: ${{ github.action_repository }}
+      run: |
+        if [ -z "${ACTION_REPO}" ]; then
+          ACTION_REPO="${GITHUB_REPOSITORY}"
+        fi
+
+        release_json="$(curl -sSL \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/${ACTION_REPO}/releases?per_page=50")"
+
+        asset_url="$("${PHP_BIN}" -r '
+          $json = json_decode(stream_get_contents(STDIN), true);
+          if (!is_array($json)) { exit(1); }
+          foreach ($json as $release) {
+            $tag = $release["tag_name"] ?? "";
+            if (strpos($tag, "v1") !== 0) { continue; }
+            foreach (($release["assets"] ?? []) as $asset) {
+              if (($asset["name"] ?? "") === "laravel-cloud-deploy") {
+                echo $asset["url"];
+                exit(0);
+              }
+            }
+          }
+          exit(1);
+        ' <<< "${release_json}")"
+
+        if [ -z "${asset_url}" ]; then
+          echo "Unable to locate a v1 release asset named laravel-cloud-deploy" >&2
           exit 1
         fi
+
+        phar_path="${RUNNER_TEMP:-/tmp}/laravel-cloud-deploy"
+        curl -sSL \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          -H "Accept: application/octet-stream" \
+          "${asset_url}" \
+          -o "${phar_path}"
+
+        if [ ! -f "${phar_path}" ]; then
+          echo "Failed to download PHAR to ${phar_path}" >&2
+          exit 1
+        fi
+
+        echo "PHAR_PATH=${phar_path}" >> "${GITHUB_ENV}"
     - name: Trigger Laravel Cloud deployment
       shell: bash
       env:
@@ -65,8 +129,11 @@ runs:
         LARAVEL_CLOUD_ENVIRONMENT: ${{ inputs.environment_id != '' && inputs.environment_id || inputs.environment }}
         LARAVEL_CLOUD_APPLICATION_NAME: ${{ inputs.application_name }}
         LARAVEL_CLOUD_ENVIRONMENT_NAME: ${{ inputs.environment_name }}
-        LARAVEL_CLOUD_WAIT: ${{ inputs.wait }}
         LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
-        "${GITHUB_ACTION_PATH}/bin/php" "${GITHUB_ACTION_PATH}/dist/laravel-cloud.phar" cloud:deploy
+        if [ "${{ inputs.no_wait }}" = "true" ]; then
+          "${PHP_BIN}" "${PHAR_PATH}" --no-wait
+        else
+          "${PHP_BIN}" "${PHAR_PATH}"
+        fi
