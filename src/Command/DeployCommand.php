@@ -44,6 +44,14 @@ class DeployCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        fwrite(STDOUT, " _                      _             _____ _                 _\n");
+        fwrite(STDOUT, "| |                    | |           / ____| |               | |\n");
+        fwrite(STDOUT, "| |     __ _ _ __ ___  | | ___  ___ | |    | | ___  _   _  __| |\n");
+        fwrite(STDOUT, "| |    / _` | '__/ _ \\ | |/ _ \\/ _ \\| |    | |/ _ \\| | | |/ _` |\n");
+        fwrite(STDOUT, "| |___| (_| | | |  __/ | |  __/ (_) | |____| | (_) | |_| | (_| |\n");
+        fwrite(STDOUT, "|______\\__,_|_|  \\___| |_|\\___|\\___/ \\_____|_|\\___/ \\__,_|\\__,_|\n");
+        fwrite(STDOUT, "\n");
+
         $token = $this->optionOrEnv($input, 'api-key', 'LARAVEL_CLOUD_API_TOKEN');
         $environmentId = $this->optionOrEnv($input, 'environment', 'LARAVEL_CLOUD_ENVIRONMENT');
         $applicationName = $this->optionOrEnv($input, 'application-name', 'LARAVEL_CLOUD_APPLICATION_NAME');
