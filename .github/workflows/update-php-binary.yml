@@ -12,11 +12,11 @@ on:
       php_version:
         description: PHP version to build
         required: false
-        default: '8.5'
+        default: '8.4'
 
 env:
   SPC_VERSION: 2.7.1
-  DEFAULT_PHP_VERSION: '8.5'
+  DEFAULT_PHP_VERSION: '8.4'
 
 jobs:
   build:
@@ -114,7 +114,7 @@ jobs:
       - name: Setup system PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.5
+          php-version: 8.4
           tools: pecl, composer
           extensions: curl, openssl, mbstring, sodium, tokenizer, filter
           ini-values: memory_limit=-1
