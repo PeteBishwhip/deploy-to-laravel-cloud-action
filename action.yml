@@ -63,9 +63,6 @@ runs:
           macOS)
             php_bin="${GITHUB_ACTION_PATH}/bin/php-macos"
             ;;
-          Windows)
-            php_bin="${GITHUB_ACTION_PATH}/bin/php-windows.exe"
-            ;;
           *)
             echo "Unsupported runner OS: ${{ runner.os }}"
             exit 1
