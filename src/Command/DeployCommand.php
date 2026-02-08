@@ -10,6 +10,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use LaravelCloudDeploy\Support\CloudApi;
+use LaravelCloudDeploy\Support\ConsoleStyler;
 use LaravelCloudDeploy\Support\Output;
 use LaravelCloudDeploy\Support\UrlHelper;
 
@@ -132,7 +133,7 @@ class DeployCommand extends Command
         $start = time();
         $nextChatterAt = $start;
         $chatterInterval = 10;
-        $inActions = getenv('GITHUB_ACTIONS') === 'true';
+        $styler = new ConsoleStyler();
         $chatterMessages = [
             'Small steps still move the deploy forward.',
             'If you want the rainbow, you must wait out the build.',
@@ -177,14 +178,7 @@ class DeployCommand extends Command
             'Skyline loading, please stand by.',
             'Clouds are just servers wearing weather.',
         ];
-        if ($inActions) {
-            $noticePrefix = "\033[1;34m";
-            $noticeSuffix = "\033[0m";
-        } else {
-            $noticePrefix = '';
-            $noticeSuffix = '';
-        }
-        fwrite(STDOUT, "{$noticePrefix}Build started. Waiting for deployment to begin...{$noticeSuffix}\n");
+        fwrite(STDOUT, $styler->notice('Build started. Waiting for deployment to begin...') . "\n");
 
         while (true) {
             if (time() - $start > $timeoutSeconds) {
@@ -211,7 +205,7 @@ class DeployCommand extends Command
 
             if (!$deploymentLogged && str_starts_with($deploymentStatus, 'deployment.')) {
                 $deploymentLogged = true;
-                fwrite(STDOUT, "{$noticePrefix}Deployment step started.{$noticeSuffix}\n");
+                fwrite(STDOUT, $styler->notice('Deployment step started.') . "\n");
             }
 
             if (!$noChatter && time() >= $nextChatterAt) {
@@ -233,7 +227,7 @@ class DeployCommand extends Command
                 if ($environmentUrl) {
                     $out->summary("Environment: {$environmentUrl}");
                 }
-                fwrite(STDOUT, "{$noticePrefix}Deployment completed successfully.{$noticeSuffix}\n");
+                fwrite(STDOUT, $styler->notice('Deployment completed successfully.') . "\n");
                 if ($environmentUrl) {
                     fwrite(STDOUT, "Environment: {$environmentUrl}\n");
                 }
