@@ -359,6 +359,7 @@ class DeployCommand extends Command
             }
         }
         $out->fail("No unique {$label} match found for: {$target}", 'not_found', 1);
+        return $items[0];
     }
 
     private function resolveEnvironmentUrl(CloudApi $api, string $token, string $environmentId): ?string
