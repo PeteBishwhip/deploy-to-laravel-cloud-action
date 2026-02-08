@@ -61,11 +61,7 @@ runs:
             fi
             ;;
           macOS)
-            if [ "${{ runner.arch }}" = "ARM64" ]; then
-              php_bin="${GITHUB_ACTION_PATH}/bin/php-macos"
-            else
-              php_bin="${GITHUB_ACTION_PATH}/bin/php-macos-x86_64"
-            fi
+            php_bin="${GITHUB_ACTION_PATH}/bin/php-macos"
             ;;
           Windows)
             php_bin="${GITHUB_ACTION_PATH}/bin/php-windows.exe"

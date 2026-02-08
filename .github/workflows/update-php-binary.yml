@@ -20,14 +20,14 @@ env:
 
 jobs:
   build:
-    name: ${{ inputs.php_version || '8.5' }} ${{ matrix.os }}
+    name: ${{ inputs.php_version || '8.4' }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: ["macos-13", "macos-latest", "windows-latest", "ubuntu-latest", "ubuntu-24.04-arm"]
+        os: ["macos-latest", "windows-latest", "ubuntu-latest", "ubuntu-24.04-arm"]
 
-    continue-on-error: true
+    continue-on-error: false
 
     steps:
       - uses: actions/checkout@v4
@@ -35,11 +35,6 @@ jobs:
       - name: Set SPC binary name
         shell: bash
         run: echo "SPC_BINARY=spc" >> $GITHUB_ENV
-
-      - name: Set SPC URL for macos-13
-        shell: bash
-        if: matrix.os == 'macos-13'
-        run: echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-macos-x86_64.tar.gz" >> $GITHUB_ENV
 
       - name: Set SPC URL for macos-latest
         shell: bash
@@ -166,9 +161,6 @@ jobs:
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             cp ../static-php-cli/buildroot/bin/php.exe "${GITHUB_WORKSPACE}/bin/php-windows.exe"
-          elif [[ "${{ matrix.os }}" == "macos-13" ]]; then
-            cp ../static-php-cli/buildroot/bin/php "${GITHUB_WORKSPACE}/bin/php-macos-x86_64"
-            chmod +x "${GITHUB_WORKSPACE}/bin/php-macos-x86_64"
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             cp ../static-php-cli/buildroot/bin/php "${GITHUB_WORKSPACE}/bin/php-macos"
             chmod +x "${GITHUB_WORKSPACE}/bin/php-macos"
