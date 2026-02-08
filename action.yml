@@ -49,10 +49,19 @@ branding:
 runs:
   using: composite
   steps:
-    - name: Select bundled PHP
+    - name: Deploy to Laravel Cloud
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        ACTION_REPO: ${{ github.action_repository }}
+        LARAVEL_CLOUD_API_TOKEN: ${{ inputs.api_token }}
+        LARAVEL_CLOUD_ENVIRONMENT: ${{ inputs.environment_id != '' && inputs.environment_id || inputs.environment }}
+        LARAVEL_CLOUD_APPLICATION_NAME: ${{ inputs.application_name }}
+        LARAVEL_CLOUD_ENVIRONMENT_NAME: ${{ inputs.environment_name }}
+        LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
+        LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
-        echo "::group::Select PHP Runtime"
+        echo "Select PHP Runtime..."
         case "${{ runner.os }}" in
           Linux)
             if [ "${{ runner.arch }}" = "ARM64" ]; then
@@ -74,26 +83,18 @@ runs:
           echo "Missing static PHP binary at ${php_bin}"
           exit 1
         fi
-        echo "PHP_BIN=${php_bin}" >> "${GITHUB_ENV}"
-        echo "Using ${php_bin}"
-        echo "::endgroup::"
-    - name: Download PHAR release
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-        ACTION_REPO: ${{ github.action_repository }}
-      run: |
-        echo "::group::Download PHAR"
+
         if [ -z "${ACTION_REPO}" ]; then
           ACTION_REPO="${GITHUB_REPOSITORY}"
         fi
 
+        echo "Download PHAR..."
         release_json="$(curl -sSL \
           -H "Authorization: Bearer ${GITHUB_TOKEN}" \
           -H "Accept: application/vnd.github+json" \
           "https://api.github.com/repos/${ACTION_REPO}/releases?per_page=50")"
 
-        asset_url="$("${PHP_BIN}" -r '
+        asset_url="$("${php_bin}" -r '
           $json = json_decode(stream_get_contents(STDIN), true);
           if (!is_array($json)) { exit(1); }
           foreach ($json as $release) {
@@ -126,25 +127,9 @@ runs:
           exit 1
         fi
 
-        echo "PHAR_PATH=${phar_path}" >> "${GITHUB_ENV}"
-        echo "Downloaded to ${phar_path}"
-        echo "::endgroup::"
-    - name: Trigger Laravel Cloud deployment
-      shell: bash
-      env:
-        LARAVEL_CLOUD_API_TOKEN: ${{ inputs.api_token }}
-        LARAVEL_CLOUD_ENVIRONMENT: ${{ inputs.environment_id != '' && inputs.environment_id || inputs.environment }}
-        LARAVEL_CLOUD_APPLICATION_NAME: ${{ inputs.application_name }}
-        LARAVEL_CLOUD_ENVIRONMENT_NAME: ${{ inputs.environment_name }}
-        LARAVEL_CLOUD_POLL_INTERVAL: ${{ inputs.poll_interval_seconds }}
-        LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
-      run: |
-        echo "::group::Deploy"
+        echo "Deploy..."
         if [ "${{ inputs.no_wait }}" = "true" ]; then
-          echo "Triggering deployment (no-wait)..."
-          "${PHP_BIN}" "${PHAR_PATH}" --no-wait
+          "${php_bin}" "${phar_path}" --no-wait
         else
-          echo "Triggering deployment and waiting..."
-          "${PHP_BIN}" "${PHAR_PATH}"
+          "${php_bin}" "${phar_path}"
         fi
-        echo "::endgroup::"
