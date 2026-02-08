@@ -10,6 +10,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use LaravelCloudDeploy\Support\CloudApi;
+use LaravelCloudDeploy\Support\Console;
+use LaravelCloudDeploy\Support\ConsoleTone;
 use LaravelCloudDeploy\Support\Output;
 use LaravelCloudDeploy\Support\UrlHelper;
 
@@ -44,14 +46,6 @@ class DeployCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        fwrite(STDOUT, " _                      _             _____ _                 _\n");
-        fwrite(STDOUT, "| |                    | |           / ____| |               | |\n");
-        fwrite(STDOUT, "| |     __ _ _ __ ___  | | ___  ___ | |    | | ___  _   _  __| |\n");
-        fwrite(STDOUT, "| |    / _` | '__/ _ \\ | |/ _ \\/ _ \\| |    | |/ _ \\| | | |/ _` |\n");
-        fwrite(STDOUT, "| |___| (_| | | |  __/ | |  __/ (_) | |____| | (_) | |_| | (_| |\n");
-        fwrite(STDOUT, "|______\\__,_|_|  \\___| |_|\\___|\\___/ \\_____|_|\\___/ \\__,_|\\__,_|\n");
-        fwrite(STDOUT, "\n");
-
         $token = $this->optionOrEnv($input, 'api-key', 'LARAVEL_CLOUD_API_TOKEN');
         $environmentId = $this->optionOrEnv($input, 'environment', 'LARAVEL_CLOUD_ENVIRONMENT');
         $applicationName = $this->optionOrEnv($input, 'application-name', 'LARAVEL_CLOUD_APPLICATION_NAME');
@@ -63,6 +57,7 @@ class DeployCommand extends Command
 
         $out = $this->out;
         $api = $this->api;
+        $console = new Console();
 
         if ($token === null || $token === '') {
             $out->fail('Missing required env var: LARAVEL_CLOUD_API_TOKEN', 'config_error', 2);
@@ -73,7 +68,7 @@ class DeployCommand extends Command
             $tokenLen = strlen($token);
             $tokenPrefix = substr($token, 0, 6);
             $tokenSuffix = substr($token, -4);
-            fwrite(STDERR, "[debug] token_length={$tokenLen} token_prefix={$tokenPrefix} token_suffix={$tokenSuffix}\n");
+            $console->writeln("[debug] token_length={$tokenLen} token_prefix={$tokenPrefix} token_suffix={$tokenSuffix}", ConsoleTone::Standard, STDERR);
         }
 
         $shouldWait = (bool) $shouldWait;
@@ -89,7 +84,7 @@ class DeployCommand extends Command
                 $out->fail('Provide either LARAVEL_CLOUD_ENVIRONMENT (id) or both LARAVEL_CLOUD_APPLICATION_NAME and LARAVEL_CLOUD_ENVIRONMENT_NAME', 'config_error', 2);
             }
 
-            $environmentId = $this->resolveEnvironmentId($api, $out, $token, $applicationName, $environmentName);
+            $environmentId = $this->resolveEnvironmentId($api, $out, $console, $token, $applicationName, $environmentName);
         }
 
         $environmentUrl = $this->resolveEnvironmentUrl($api, $token, $environmentId);
@@ -97,7 +92,7 @@ class DeployCommand extends Command
         $payload = ['data' => ['type' => 'deployments']];
         $debug = getenv('ACTIONS_STEP_DEBUG') === 'true' || getenv('RUNNER_DEBUG') === '1';
         if ($debug) {
-            fwrite(STDERR, "[debug] deploy_payload=" . json_encode($payload) . "\n");
+            $console->writeln("[debug] deploy_payload=" . json_encode($payload), ConsoleTone::Standard, STDERR);
         }
         $response = $api->request('POST', "/environments/{$environmentId}/deployments", $token, $payload);
         if ($response['status'] === 0) {
@@ -140,15 +135,16 @@ class DeployCommand extends Command
         $start = time();
         $nextChatterAt = $start;
         $chatterInterval = 10;
+        $console = new Console();
         $chatterMessages = [
             'Small steps still move the deploy forward.',
             'If you want the rainbow, you must wait out the build.',
             'The future is compiled one step at a time.',
             'Patience is just good caching.',
-            'Still running — your app is getting ready to shine.',
+            'Your app is getting ready to shine.',
             'A calm mind ships better code.',
             'This is the way of the framework.',
-            'The build is still running. But you’re just sat there, watching this.',
+            'The build is running, and you’re just sat there, watching this.',
             'The cloud is thick with progress.',
             'Your deploy is circling the runway.',
             'Shipping soon — the sky is clearing.',
@@ -163,14 +159,28 @@ class DeployCommand extends Command
             'The forecast says: deployment with a high chance of joy.',
             'Cloud City approves this build.',
             'We’re riding a steady tailwind.',
+            'Deploying in the stratosphere.',
+            'The queue is calm; the clouds are busy.',
+            'All signs point to green skies.',
+            'Clouds are moving; the release is coming.',
+            'The wind is at our back; the build continues.',
+            'Compiling with a chance of success.',
+            'The cloud is whispering: almost there.',
+            'A light drizzle of progress.',
+            'Deployment pressure dropping steadily.',
+            'You’re up in the cloud, and the view is good.',
+            'Cirrus signals say: keep watching.',
+            'The runway lights are on.',
+            'A soft rumble in the build layer.',
+            'We’ve caught a thermal updraft.',
+            'Deploy haze, then sunshine.',
+            'Your app is climbing altitude.',
+            'Blue skies ahead, just a moment.',
+            'The jet stream is in our favor.',
+            'Skyline loading, please stand by.',
+            'Clouds are just servers wearing weather.',
         ];
-
-        $inActions = getenv('GITHUB_ACTIONS') === 'true';
-        if ($inActions) {
-            fwrite(STDOUT, "::notice::Build started. Waiting for deployment to begin...\n");
-        } else {
-            fwrite(STDOUT, "Build started. Waiting for deployment to begin...\n");
-        }
+        $console->writeln('Build started. Waiting for deployment to begin...', ConsoleTone::Notice);
 
         while (true) {
             if (time() - $start > $timeoutSeconds) {
@@ -197,17 +207,19 @@ class DeployCommand extends Command
 
             if (!$deploymentLogged && str_starts_with($deploymentStatus, 'deployment.')) {
                 $deploymentLogged = true;
-                if ($inActions) {
-                    fwrite(STDOUT, "::notice::Deployment step started.\n");
-                } else {
-                    fwrite(STDOUT, "Deployment step started.\n");
-                }
+                $console->writeln('Deployment step started.', ConsoleTone::Notice);
             }
 
             if (!$noChatter && time() >= $nextChatterAt) {
                 $nextChatterAt = time() + $chatterInterval;
-                $message = $chatterMessages[array_rand($chatterMessages)];
-                fwrite(STDOUT, "Still running — {$message}\n");
+                if (count($chatterMessages) > 0) {
+                    $index = array_rand($chatterMessages);
+                    $message = $chatterMessages[$index];
+                    array_splice($chatterMessages, (int) $index, 1);
+                } else {
+                    $message = 'Still running — the clouds are quiet for a moment.';
+                }
+                $console->writeln("Still running — {$message}");
             }
 
             if (in_array($deploymentStatus, $terminalSuccess, true)) {
@@ -217,13 +229,9 @@ class DeployCommand extends Command
                 if ($environmentUrl) {
                     $out->summary("Environment: {$environmentUrl}");
                 }
-                if ($inActions) {
-                    fwrite(STDOUT, "::notice::Deployment completed successfully.\n");
-                } else {
-                    fwrite(STDOUT, "Deployment completed successfully.\n");
-                }
+                $console->writeln('Deployment completed successfully.', ConsoleTone::Notice);
                 if ($environmentUrl) {
-                    fwrite(STDOUT, "Environment: {$environmentUrl}\n");
+                    $console->writeln("Environment: {$environmentUrl}");
                 }
                 return Command::SUCCESS;
             }
@@ -239,12 +247,12 @@ class DeployCommand extends Command
                 if (is_string($failureReason) && $failureReason !== '') {
                     $out->summary("Failure reason: {$failureReason}");
                 }
-                fwrite(STDERR, "Deployment failed: {$deploymentStatus}\n");
+                $console->writeln("Deployment failed: {$deploymentStatus}", ConsoleTone::Standard, STDERR);
                 if (is_string($failureReason) && $failureReason !== '') {
-                    fwrite(STDERR, "Failure reason: {$failureReason}\n");
+                    $console->writeln("Failure reason: {$failureReason}", ConsoleTone::Standard, STDERR);
                 }
                 if ($environmentUrl) {
-                    fwrite(STDERR, "Environment: {$environmentUrl}\n");
+                    $console->writeln("Environment: {$environmentUrl}", ConsoleTone::Standard, STDERR);
                 }
                 return Command::FAILURE;
             }
@@ -253,7 +261,7 @@ class DeployCommand extends Command
         }
     }
 
-    private function resolveEnvironmentId(CloudApi $api, Output $out, string $token, string $applicationName, string $environmentName): string
+    private function resolveEnvironmentId(CloudApi $api, Output $out, Console $console, string $token, string $applicationName, string $environmentName): string
     {
         $appQuery = http_build_query(['filter' => ['name' => $applicationName]], '', '&', PHP_QUERY_RFC3986);
         $response = $api->request('GET', "/applications?{$appQuery}", $token);
@@ -272,7 +280,7 @@ class DeployCommand extends Command
             $out->fail("No applications found for name: {$applicationName}", 'not_found', 1);
         }
 
-        $application = $this->selectByName($out, $applications, $applicationName, 'application');
+        $application = $this->selectByName($out, $console, $applications, $applicationName, 'application');
         if (!isset($application['id'])) {
             $out->fail('Application response missing id', 'invalid_response', 1);
         }
@@ -295,7 +303,7 @@ class DeployCommand extends Command
             $out->fail("No environments found for name: {$environmentName}", 'not_found', 1);
         }
 
-        $environment = $this->selectByName($out, $environments, $environmentName, 'environment');
+        $environment = $this->selectByName($out, $console, $environments, $environmentName, 'environment');
         if (!isset($environment['id'])) {
             $out->fail('Environment response missing id', 'invalid_response', 1);
         }
@@ -303,7 +311,7 @@ class DeployCommand extends Command
         return (string) $environment['id'];
     }
 
-    private function selectByName(Output $out, array $items, string $target, string $label): array
+    private function selectByName(Output $out, Console $console, array $items, string $target, string $label): array
     {
         $exact = array_values(array_filter($items, function ($item) use ($target) {
             $name = $item['attributes']['name'] ?? null;
@@ -315,12 +323,12 @@ class DeployCommand extends Command
             return $exact[0];
         }
         if (count($exact) > 1) {
-            fwrite(STDERR, "Multiple {$label} matches found for: {$target}\n");
+            $console->writeln("Multiple {$label} matches found for: {$target}", ConsoleTone::Standard, STDERR);
             foreach ($exact as $match) {
                 $name = $match['attributes']['name'] ?? 'unknown';
                 $slug = $match['attributes']['slug'] ?? 'unknown';
                 $id = $match['id'] ?? 'unknown';
-                fwrite(STDERR, "- name: {$name}, slug: {$slug}, id: {$id}\n");
+                $console->writeln("- name: {$name}, slug: {$slug}, id: {$id}", ConsoleTone::Standard, STDERR);
             }
             $out->fail("Multiple {$label} matches found for: {$target}", 'not_found', 1);
         }
@@ -339,25 +347,26 @@ class DeployCommand extends Command
             return $ci[0];
         }
 
-        fwrite(STDERR, "No unique {$label} match found for: {$target}\n");
+        $console->writeln("No unique {$label} match found for: {$target}", ConsoleTone::Standard, STDERR);
         if (count($ci) > 1) {
-            fwrite(STDERR, "Case-insensitive matches:\n");
+            $console->writeln("Case-insensitive matches:", ConsoleTone::Standard, STDERR);
             foreach ($ci as $match) {
                 $name = $match['attributes']['name'] ?? 'unknown';
                 $slug = $match['attributes']['slug'] ?? 'unknown';
                 $id = $match['id'] ?? 'unknown';
-                fwrite(STDERR, "- name: {$name}, slug: {$slug}, id: {$id}\n");
+                $console->writeln("- name: {$name}, slug: {$slug}, id: {$id}", ConsoleTone::Standard, STDERR);
             }
         } elseif (count($items) > 0) {
-            fwrite(STDERR, "Available {$label}s:\n");
+            $console->writeln("Available {$label}s:", ConsoleTone::Standard, STDERR);
             foreach ($items as $match) {
                 $name = $match['attributes']['name'] ?? 'unknown';
                 $slug = $match['attributes']['slug'] ?? 'unknown';
                 $id = $match['id'] ?? 'unknown';
-                fwrite(STDERR, "- name: {$name}, slug: {$slug}, id: {$id}\n");
+                $console->writeln("- name: {$name}, slug: {$slug}, id: {$id}", ConsoleTone::Standard, STDERR);
             }
         }
         $out->fail("No unique {$label} match found for: {$target}", 'not_found', 1);
+        return $items[0];
     }
 
     private function resolveEnvironmentUrl(CloudApi $api, string $token, string $environmentId): ?string

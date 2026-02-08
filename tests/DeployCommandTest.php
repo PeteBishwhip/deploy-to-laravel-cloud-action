@@ -41,6 +41,7 @@ class DeployCommandTest extends TestCase
 
             public function request(string $method, string $path, string $token, ?array $body = null): array
             {
+                $path = ltrim($path, '/');
                 $this->calls[] = [$method, $path];
 
                 if ($path === 'applications?filter%5Bname%5D=My%20App') {
