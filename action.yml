@@ -49,13 +49,30 @@ branding:
 runs:
   using: composite
   steps:
-    - name: Validate bundled PHP
+    - name: Select bundled PHP
       shell: bash
       run: |
-        if [ ! -x "${GITHUB_ACTION_PATH}/bin/php" ]; then
-          echo "Missing static PHP binary at ${GITHUB_ACTION_PATH}/bin/php"
+        case "${{ runner.os }}" in
+          Linux)
+            php_bin="${GITHUB_ACTION_PATH}/bin/php-linux"
+            ;;
+          macOS)
+            php_bin="${GITHUB_ACTION_PATH}/bin/php-macos"
+            ;;
+          Windows)
+            php_bin="${GITHUB_ACTION_PATH}/bin/php-windows.exe"
+            ;;
+          *)
+            echo "Unsupported runner OS: ${{ runner.os }}"
+            exit 1
+            ;;
+        esac
+
+        if [ ! -x "${php_bin}" ]; then
+          echo "Missing static PHP binary at ${php_bin}"
           exit 1
         fi
+        echo "PHP_BIN=${php_bin}" >> "${GITHUB_ENV}"
     - name: Download PHAR release
       shell: bash
       env:
@@ -71,7 +88,7 @@ runs:
           -H "Accept: application/vnd.github+json" \
           "https://api.github.com/repos/${ACTION_REPO}/releases?per_page=50")"
 
-        asset_url="$("${GITHUB_ACTION_PATH}/bin/php" -r '
+        asset_url="$("${PHP_BIN}" -r '
           $json = json_decode(stream_get_contents(STDIN), true);
           if (!is_array($json)) { exit(1); }
           foreach ($json as $release) {
@@ -116,7 +133,7 @@ runs:
         LARAVEL_CLOUD_TIMEOUT: ${{ inputs.timeout_seconds }}
       run: |
         if [ "${{ inputs.no_wait }}" = "true" ]; then
-          "${GITHUB_ACTION_PATH}/bin/php" "${PHAR_PATH}" --no-wait
+          "${PHP_BIN}" "${PHAR_PATH}" --no-wait
         else
-          "${GITHUB_ACTION_PATH}/bin/php" "${PHAR_PATH}"
+          "${PHP_BIN}" "${PHAR_PATH}"
         fi
