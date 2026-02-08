@@ -190,7 +190,7 @@ class DeployCommand extends Command
             if (!$noChatter && time() >= $nextChatterAt) {
                 $nextChatterAt = time() + $chatterInterval;
                 $message = $chatterMessages[array_rand($chatterMessages)];
-                fwrite(STDOUT, "{$message}\n");
+                fwrite(STDOUT, "Still running — {$message}\n");
             }
 
             if (in_array($deploymentStatus, $terminalSuccess, true)) {
