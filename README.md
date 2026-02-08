@@ -73,4 +73,9 @@ jobs:
 
 ## Releases
 
-The PHAR is built and uploaded automatically when a release is published as `laravel-cloud-deploy`. Consumers should use `@v1` to stay on the latest v1 release. When v2 is released, users must opt-in by updating their action version.
+The PHAR is built and uploaded automatically when a release is published as `laravel-cloud-deploy`.
+
+We publish both a full tag (for example `v1.2.3`) and a moving major tag (for example `v1`).
+- Use `@v1` to stay on the latest v1 release.
+- Use `@v1.2.3` to pin to a specific release.
+When v2 is released, users must opt-in by updating their action version.
