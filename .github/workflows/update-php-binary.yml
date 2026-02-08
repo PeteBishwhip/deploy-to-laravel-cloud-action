@@ -16,29 +16,68 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            output: bin/php-linux
-          - os: macos-latest
-            output: bin/php-macos
-          - os: windows-latest
-            output: bin/php-windows.exe
     runs-on: ${{ matrix.os }}
+    env:
+      SPC_VERSION: 2.7.1
+      EXTENSIONS: "curl,openssl,mbstring,json,zip,phar"
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up PHP
+      - name: Set SPC binary name
+        shell: bash
+        run: echo "SPC_BINARY=spc" >> $GITHUB_ENV
+      - name: Set SPC URL (macOS)
+        shell: bash
+        if: runner.os == 'macOS'
+        run: echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-macos-aarch64.tar.gz" >> $GITHUB_ENV
+      - name: Set SPC URL (Linux)
+        shell: bash
+        if: runner.os == 'Linux'
+        run: echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-linux-x86_64.tar.gz" >> $GITHUB_ENV
+      - name: Set SPC URL (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          echo "SPC_URL=https://github.com/crazywhalecc/static-php-cli/releases/download/${{ env.SPC_VERSION }}/spc-windows-x64.exe" >> $GITHUB_ENV
+          echo "SPC_BINARY=spc.exe" >> $GITHUB_ENV
+      - name: Download SPC
+        shell: bash
+        run: |
+          mkdir -p tools/static-php-cli/bin
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            curl -fsSL -o "${SPC_BINARY}" "${SPC_URL}"
+          else
+            curl -fsSL -o "${SPC_BINARY}.tar.gz" "${SPC_URL}"
+            tar -xzf "${SPC_BINARY}.tar.gz"
+          fi
+          chmod +x "${SPC_BINARY}"
+          mv "${SPC_BINARY}" tools/static-php-cli/bin/
+      - name: Set up system PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: curl, json, mbstring, zip
-      - name: Build static PHP binary
+          extensions: curl, openssl, mbstring, json, zip, phar
+          ini-values: memory_limit=-1
+      - name: SPC doctor
         shell: bash
-        env:
-          PHP_VERSION: ${{ inputs.php_version }}
-          OUTPUT_PATH: ${{ matrix.output }}
-        run: ./scripts/update-php-binary.sh
+        run: ./tools/static-php-cli/bin/${{ env.SPC_BINARY }} doctor
+      - name: Download sources
+        shell: bash
+        run: ./tools/static-php-cli/bin/${{ env.SPC_BINARY }} download --with-php=${{ inputs.php_version }} --for-extensions "${{ env.EXTENSIONS }}" --prefer-pre-built
+      - name: Build PHP
+        shell: bash
+        run: ./tools/static-php-cli/bin/${{ env.SPC_BINARY }} build --build-cli "${{ env.EXTENSIONS }}"
+      - name: Move binary into repo
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp tools/static-php-cli/buildroot/bin/php.exe bin/php-windows.exe
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            cp tools/static-php-cli/buildroot/bin/php bin/php-macos
+            chmod +x bin/php-macos
+          else
+            cp tools/static-php-cli/buildroot/bin/php bin/php-linux
+            chmod +x bin/php-linux
+          fi
       - name: Commit PHP binary
         shell: bash
         run: |
@@ -48,6 +87,6 @@ jobs:
           fi
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add ${{ matrix.output }}
-          git commit -m "Update PHP binary (${{ matrix.os }})"
+          git add bin/php-linux bin/php-macos bin/php-windows.exe
+          git commit -m "Update PHP binary (${{ runner.os }})"
           git push
